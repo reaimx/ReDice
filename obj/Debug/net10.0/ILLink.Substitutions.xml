@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<linker>
+  <assembly fullname="ReDice">
+    <resource name="FSharpSignatureData.ReDice" action="remove"></resource>
+    <resource name="FSharpSignatureCompressedData.ReDice" action="remove"></resource>
+    <resource name="FSharpSignatureDataB.ReDice" action="remove"></resource>
+    <resource name="FSharpSignatureCompressedDataB.ReDice" action="remove"></resource>
+    <resource name="FSharpOptimizationData.ReDice" action="remove"></resource>
+    <resource name="FSharpOptimizationCompressedData.ReDice" action="remove"></resource>
+    <resource name="FSharpOptimizationDataB.ReDice" action="remove"></resource>
+    <resource name="FSharpOptimizationCompressedDataB.ReDice" action="remove"></resource>
+    <resource name="FSharpOptimizationInfo.ReDice" action="remove"></resource>
+    <resource name="FSharpSignatureInfo.ReDice" action="remove"></resource>
+  </assembly>
+</linker>

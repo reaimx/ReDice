@@ -1,0 +1,15 @@
+{
+  "version": 2,
+  "dgSpecHash": "NIMiHZpZo3k=",
+  "success": true,
+  "projectFilePath": "/Users/reaim/ReDice/ReDice/ReDice.fsproj",
+  "expectedPackageFiles": [
+    "/Users/reaim/.nuget/packages/fsharp.core/10.1.203/fsharp.core.10.1.203.nupkg.sha512",
+    "/Users/reaim/.nuget/packages/htmlagilitypack/1.12.4/htmlagilitypack.1.12.4.nupkg.sha512",
+    "/Users/reaim/.nuget/packages/websharper/10.1.1.670/websharper.10.1.1.670.nupkg.sha512",
+    "/Users/reaim/.nuget/packages/websharper.aspnetcore/10.1.1.670/websharper.aspnetcore.10.1.1.670.nupkg.sha512",
+    "/Users/reaim/.nuget/packages/websharper.fsharp/10.1.1.670/websharper.fsharp.10.1.1.670.nupkg.sha512",
+    "/Users/reaim/.nuget/packages/websharper.ui/10.1.1.670/websharper.ui.10.1.1.670.nupkg.sha512"
+  ],
+  "logs": []
+}
