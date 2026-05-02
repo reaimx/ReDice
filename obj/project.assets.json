@@ -69,7 +69,7 @@
           }
         }
       },
-      "WebSharper/10.1.1.670": {
+      "WebSharper/10.1.0.667": {
         "type": "package",
         "dependencies": {
           "FSharp.Core": "6.0.0"
@@ -121,10 +121,10 @@
           }
         }
       },
-      "WebSharper.AspNetCore/10.1.1.670": {
+      "WebSharper.AspNetCore/10.1.0.667": {
         "type": "package",
         "dependencies": {
-          "WebSharper": "[10.1.1.670]"
+          "WebSharper": "[10.1.0.667]"
         },
         "compile": {
           "lib/netstandard2.0/WebSharper.AspNetCore.dll": {
@@ -137,20 +137,70 @@
           }
         }
       },
-      "WebSharper.FSharp/10.1.1.670": {
+      "WebSharper.Charting/10.1.0.667": {
         "type": "package",
         "dependencies": {
-          "WebSharper": "[10.1.1.670]"
+          "WebSharper": "[10.1.0, 10.2.0)",
+          "WebSharper.ChartJS": "[10.1.0, 10.2.0)",
+          "WebSharper.Plotly": "[10.1.0, 10.2.0)"
+        },
+        "compile": {
+          "lib/netstandard2.0/WebSharper.Charting.dll": {
+            "related": ".xml"
+          }
+        },
+        "runtime": {
+          "lib/netstandard2.0/WebSharper.Charting.dll": {
+            "related": ".xml"
+          }
+        }
+      },
+      "WebSharper.ChartJs/10.1.0.667": {
+        "type": "package",
+        "dependencies": {
+          "WebSharper": "[10.1.0, 10.2.0)"
+        },
+        "compile": {
+          "lib/netstandard2.0/WebSharper.ChartJs.dll": {
+            "related": ".xml"
+          }
+        },
+        "runtime": {
+          "lib/netstandard2.0/WebSharper.ChartJs.dll": {
+            "related": ".xml"
+          }
+        }
+      },
+      "WebSharper.FSharp/10.1.0.667": {
+        "type": "package",
+        "dependencies": {
+          "WebSharper": "[10.1.0.667]"
         },
         "build": {
           "build/WebSharper.FSharp.targets": {}
         }
       },
-      "WebSharper.UI/10.1.1.670": {
+      "WebSharper.Plotly/10.1.0.667": {
+        "type": "package",
+        "dependencies": {
+          "WebSharper": "[10.1.0, 10.2.0)"
+        },
+        "compile": {
+          "lib/netstandard2.0/WebSharper.Plotly.dll": {
+            "related": ".xml"
+          }
+        },
+        "runtime": {
+          "lib/netstandard2.0/WebSharper.Plotly.dll": {
+            "related": ".xml"
+          }
+        }
+      },
+      "WebSharper.UI/10.1.0.667": {
         "type": "package",
         "dependencies": {
           "HtmlAgilityPack": "1.12.4",
-          "WebSharper": "[10.1.1.670, 10.1.2)"
+          "WebSharper": "[10.1.0.667, 10.1.1)"
         },
         "compile": {
           "lib/netstandard2.0/WebSharper.UI.Templating.Common.dll": {
@@ -265,10 +315,10 @@
         "readme.md"
       ]
     },
-    "WebSharper/10.1.1.670": {
-      "sha512": "ibQOIxiRO2MrSl3rjfs88oeXAy2GalsT4X0BXiUtPoZfYlmyHiD0im1lANDbkjdH1c+F5ioDdhse/3XlheezdA==",
+    "WebSharper/10.1.0.667": {
+      "sha512": "fUk/O+3VhsJ4bU1987aGN6t57i4tfFqLnw7Z/ktz4YXy6/N9NZd29qdleMbt4tjJjV5oiuY+LE6NcJ0cJq67Fg==",
       "type": "package",
-      "path": "websharper/10.1.1.670",
+      "path": "websharper/10.1.0.667",
       "hasTools": true,
       "files": [
         ".nupkg.metadata",
@@ -297,7 +347,6 @@
         "docs/qunit.png",
         "docs/release-notes/10.0.0.md",
         "docs/release-notes/10.1.0.md",
-        "docs/release-notes/10.1.1.md",
         "docs/static-comp-form.png",
         "docs/validation-form.png",
         "docs/w3c.md",
@@ -316,27 +365,54 @@
         "lib/netstandard2.0/WebSharper.Web.dll",
         "lib/netstandard2.0/WebSharper.Web.xml",
         "tools/tags.csv",
-        "websharper.10.1.1.670.nupkg.sha512",
+        "websharper.10.1.0.667.nupkg.sha512",
         "websharper.nuspec"
       ]
     },
-    "WebSharper.AspNetCore/10.1.1.670": {
-      "sha512": "dpaiXwlGB74mXCL/zC/tr0t32+o9wi+5XxkXl+kFDfphK0aYPic1kr1GuZioaxKibRbGr/IAx7NaqIUDstdg+Q==",
+    "WebSharper.AspNetCore/10.1.0.667": {
+      "sha512": "/0jHPnVmJLCvr8li6YEjgYAng/Htjqw/uqtwiZnK3vdIOyIxmr5GLKnfwTej7iWVWONaYTVYl8bKRsKI8I/1fw==",
       "type": "package",
-      "path": "websharper.aspnetcore/10.1.1.670",
+      "path": "websharper.aspnetcore/10.1.0.667",
       "files": [
         ".nupkg.metadata",
         ".signature.p7s",
         "lib/netstandard2.0/WebSharper.AspNetCore.dll",
         "lib/netstandard2.0/WebSharper.AspNetCore.xml",
-        "websharper.aspnetcore.10.1.1.670.nupkg.sha512",
+        "websharper.aspnetcore.10.1.0.667.nupkg.sha512",
         "websharper.aspnetcore.nuspec"
       ]
     },
-    "WebSharper.FSharp/10.1.1.670": {
-      "sha512": "R4M0v7L9pWqcOEMVMJyDxD8icgZVUfj9F+FhI40u+ZmrqCjKVg7s7g76CXhqGXKepf9mjjXWn7MPPHeRSJ+OLA==",
+    "WebSharper.Charting/10.1.0.667": {
+      "sha512": "+pIgvElyDT9NkPOooRHOyCWLsSdDHYoTZ0PAKVSk9Mw1+NgHeVCJssfG8xFWmIJavfSHituW3I92H73X1GJOPg==",
       "type": "package",
-      "path": "websharper.fsharp/10.1.1.670",
+      "path": "websharper.charting/10.1.0.667",
+      "files": [
+        ".nupkg.metadata",
+        ".signature.p7s",
+        "lib/netstandard2.0/WebSharper.Charting.dll",
+        "lib/netstandard2.0/WebSharper.Charting.xml",
+        "websharper.charting.10.1.0.667.nupkg.sha512",
+        "websharper.charting.nuspec"
+      ]
+    },
+    "WebSharper.ChartJs/10.1.0.667": {
+      "sha512": "LVTE+pWzOSiWo49Hd1hXI39WEQ4w25PSStd/y+yMVAvrP87OxOhWWcBjJOOWMgPMcoLlNlSfhcbw6gckbm0EUw==",
+      "type": "package",
+      "path": "websharper.chartjs/10.1.0.667",
+      "files": [
+        ".nupkg.metadata",
+        ".signature.p7s",
+        "lib/netstandard2.0/WebSharper.ChartJs.dll",
+        "lib/netstandard2.0/WebSharper.ChartJs.xml",
+        "src/WebSharper.ChartJs.fsproj",
+        "websharper.chartjs.10.1.0.667.nupkg.sha512",
+        "websharper.chartjs.nuspec"
+      ]
+    },
+    "WebSharper.FSharp/10.1.0.667": {
+      "sha512": "Yjgo+5tPKUPqshw2xhEmBRQ3LfO2xATJx9/dv8q1YR7nQ8H9eKwtqSdFjYWwCdSzKGGRtew1xV+AAqBIKmwc2w==",
+      "type": "package",
+      "path": "websharper.fsharp/10.1.0.667",
       "hasTools": true,
       "files": [
         ".nupkg.metadata",
@@ -702,14 +778,28 @@
         "tools/net10.0/zh-Hant/FSharp.Core.resources.dll",
         "tools/net10.0/zh-Hant/FSharp.DependencyManager.Nuget.resources.dll",
         "tools/netstandard2.0/WebSharper.MSBuild.FSharp.dll",
-        "websharper.fsharp.10.1.1.670.nupkg.sha512",
+        "websharper.fsharp.10.1.0.667.nupkg.sha512",
         "websharper.fsharp.nuspec"
       ]
     },
-    "WebSharper.UI/10.1.1.670": {
-      "sha512": "oOSYCKcN+vA8Hd30KDqE7NSRQ0LlFLJuCPzSl6I6LRQw9OiEx15tfmbxavfG3r64IEVtFPTjV0sbBd5wJljJng==",
+    "WebSharper.Plotly/10.1.0.667": {
+      "sha512": "8gsXCeZypu1mnQWfRvi3bt1kVqYfqbhQkqUqDtCURM8/RXxTkhWbnnp8LHPXTP3n1MRc+whxOSEdY9+y1bM6Dw==",
       "type": "package",
-      "path": "websharper.ui/10.1.1.670",
+      "path": "websharper.plotly/10.1.0.667",
+      "files": [
+        ".nupkg.metadata",
+        ".signature.p7s",
+        "lib/netstandard2.0/WebSharper.Plotly.dll",
+        "lib/netstandard2.0/WebSharper.Plotly.xml",
+        "src/WebSharper.Plotly.fsproj",
+        "websharper.plotly.10.1.0.667.nupkg.sha512",
+        "websharper.plotly.nuspec"
+      ]
+    },
+    "WebSharper.UI/10.1.0.667": {
+      "sha512": "AZTnz0hWTrbuYaWpYwz0su3UgmHh9JSlWH9QIocxbDN5k/zi2K547MDL+GU+JpWV7rw88smq8fhdshj8s4m2zg==",
+      "type": "package",
+      "path": "websharper.ui/10.1.0.667",
       "files": [
         ".nupkg.metadata",
         ".signature.p7s",
@@ -733,7 +823,7 @@
         "typeproviders/fsharp41/netstandard2.0/WebSharper.UI.dll",
         "typeproviders/fsharp41/netstandard2.0/WebSharper.UI.xml",
         "typeproviders/fsharp41/netstandard2.0/WebSharper.Web.dll",
-        "websharper.ui.10.1.1.670.nupkg.sha512",
+        "websharper.ui.10.1.0.667.nupkg.sha512",
         "websharper.ui.nuspec"
       ]
     }
@@ -741,10 +831,13 @@
   "projectFileDependencyGroups": {
     "net10.0": [
       "FSharp.Core >= 10.1.203",
-      "WebSharper >= 10.1.1.670",
-      "WebSharper.AspNetCore >= 10.1.1.670",
-      "WebSharper.FSharp >= 10.1.1.670",
-      "WebSharper.UI >= 10.1.1.670"
+      "WebSharper >= 10.1.0.667",
+      "WebSharper.AspNetCore >= 10.1.0.667",
+      "WebSharper.ChartJs >= 10.1.0.667",
+      "WebSharper.Charting >= 10.1.0.667",
+      "WebSharper.FSharp >= 10.1.0.667",
+      "WebSharper.Plotly >= 10.1.0.667",
+      "WebSharper.UI >= 10.1.0.667"
     ]
   },
   "packageFolders": {
@@ -794,22 +887,37 @@
           },
           "WebSharper": {
             "target": "Package",
-            "version": "[10.1.1.670, )",
+            "version": "[10.1.0.667, )",
             "generatePathProperty": true
           },
           "WebSharper.AspNetCore": {
             "target": "Package",
-            "version": "[10.1.1.670, )",
+            "version": "[10.1.0.667, )",
+            "generatePathProperty": true
+          },
+          "WebSharper.ChartJs": {
+            "target": "Package",
+            "version": "[10.1.0.667, )",
+            "generatePathProperty": true
+          },
+          "WebSharper.Charting": {
+            "target": "Package",
+            "version": "[10.1.0.667, )",
             "generatePathProperty": true
           },
           "WebSharper.FSharp": {
             "target": "Package",
-            "version": "[10.1.1.670, )",
+            "version": "[10.1.0.667, )",
+            "generatePathProperty": true
+          },
+          "WebSharper.Plotly": {
+            "target": "Package",
+            "version": "[10.1.0.667, )",
             "generatePathProperty": true
           },
           "WebSharper.UI": {
             "target": "Package",
-            "version": "[10.1.1.670, )",
+            "version": "[10.1.0.667, )",
             "generatePathProperty": true
           }
         },

@@ -10,7 +10,7 @@ open System.Reflection
 [<assembly: System.Reflection.AssemblyCompanyAttribute("ReDice")>]
 [<assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")>]
 [<assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")>]
-[<assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0")>]
+[<assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+ef41f03de3c7aa52e6585050cf7d447ce2eafee3")>]
 [<assembly: System.Reflection.AssemblyProductAttribute("ReDice")>]
 [<assembly: System.Reflection.AssemblyTitleAttribute("ReDice")>]
 [<assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")>]

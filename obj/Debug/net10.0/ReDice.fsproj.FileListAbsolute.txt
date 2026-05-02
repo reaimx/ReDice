@@ -1,4 +1,5 @@
 /Users/reaim/ReDice/ReDice/bin/Debug/net10.0/appsettings.json
+/Users/reaim/ReDice/ReDice/bin/Debug/net10.0/package-lock.json
 /Users/reaim/ReDice/ReDice/bin/Debug/net10.0/package.json
 /Users/reaim/ReDice/ReDice/bin/Debug/net10.0/wsconfig.json
 /Users/reaim/ReDice/ReDice/bin/Debug/net10.0/ReDice.staticwebassets.runtime.json
@@ -18,6 +19,9 @@
 /Users/reaim/ReDice/ReDice/bin/Debug/net10.0/WebSharper.StdLib.dll
 /Users/reaim/ReDice/ReDice/bin/Debug/net10.0/WebSharper.Web.dll
 /Users/reaim/ReDice/ReDice/bin/Debug/net10.0/WebSharper.AspNetCore.dll
+/Users/reaim/ReDice/ReDice/bin/Debug/net10.0/WebSharper.Charting.dll
+/Users/reaim/ReDice/ReDice/bin/Debug/net10.0/WebSharper.ChartJs.dll
+/Users/reaim/ReDice/ReDice/bin/Debug/net10.0/WebSharper.Plotly.dll
 /Users/reaim/ReDice/ReDice/bin/Debug/net10.0/WebSharper.UI.Templating.Common.dll
 /Users/reaim/ReDice/ReDice/bin/Debug/net10.0/WebSharper.UI.Templating.Runtime.dll
 /Users/reaim/ReDice/ReDice/bin/Debug/net10.0/WebSharper.UI.dll
@@ -41,10 +45,12 @@
 /Users/reaim/ReDice/ReDice/obj/Debug/net10.0/ReDice.fsproj.CoreCompileInputs.cache
 /Users/reaim/ReDice/ReDice/obj/Debug/net10.0/ReDice.MvcApplicationPartsAssemblyInfo.fs
 /Users/reaim/ReDice/ReDice/obj/Debug/net10.0/ReDice.MvcApplicationPartsAssemblyInfo.cache
+/Users/reaim/ReDice/ReDice/obj/Debug/net10.0/ReDice.sourcelink.json
 /Users/reaim/ReDice/ReDice/obj/Debug/net10.0/rjimswa.dswa.cache.json
 /Users/reaim/ReDice/ReDice/obj/Debug/net10.0/rjsmrazor.dswa.cache.json
 /Users/reaim/ReDice/ReDice/obj/Debug/net10.0/rjsmcshtml.dswa.cache.json
 /Users/reaim/ReDice/ReDice/obj/Debug/net10.0/scopedcss/bundle/ReDice.styles.css
+/Users/reaim/ReDice/ReDice/obj/Debug/net10.0/compressed/ukfc09p5bw-{0}-d5hsw7jpei-d5hsw7jpei.gz
 /Users/reaim/ReDice/ReDice/obj/Debug/net10.0/compressed/0auctlwn55-{0}-5ipweew5fc-5ipweew5fc.gz
 /Users/reaim/ReDice/ReDice/obj/Debug/net10.0/compressed/t3pbxa6ou0-{0}-5ipweew5fc-5ipweew5fc.gz
 /Users/reaim/ReDice/ReDice/obj/Debug/net10.0/compressed/0v9o9h85fh-{0}-ehbcvd46a9-ehbcvd46a9.gz
@@ -58,6 +64,5 @@
 /Users/reaim/ReDice/ReDice/obj/Debug/net10.0/ReDice.dll
 /Users/reaim/ReDice/ReDice/obj/Debug/net10.0/ReDice.pdb
 /Users/reaim/ReDice/ReDice/obj/Debug/net10.0/ReDice.genruntimeconfig.cache
-/Users/reaim/ReDice/ReDice/obj/Debug/net10.0/compressed/1wpsmt62dj-{0}-7x1vqe1x38-7x1vqe1x38.gz
-/Users/reaim/ReDice/ReDice/obj/Debug/net10.0/compressed/a1fkq9442k-{0}-kg958xr1gn-kg958xr1gn.gz
-/Users/reaim/ReDice/ReDice/obj/Debug/net10.0/compressed/ukfc09p5bw-{0}-d5hsw7jpei-d5hsw7jpei.gz
+/Users/reaim/ReDice/ReDice/obj/Debug/net10.0/compressed/1wpsmt62dj-{0}-eehu6kjodh-eehu6kjodh.gz
+/Users/reaim/ReDice/ReDice/obj/Debug/net10.0/compressed/a1fkq9442k-{0}-6ifl5tieo9-6ifl5tieo9.gz
