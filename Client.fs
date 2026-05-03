@@ -80,11 +80,16 @@ module Client =
         let updated = allRolls.Value @ rolls
         allRolls.Set updated
 
+    let resetStats () =
+        allRolls.Set []
+        lastTotal.Set 0
+        lastRolls.Set ""
+
     let getChartData sides rolls =
         [ for value in 1 .. sides ->
             let count =
                 rolls
-                |> List.filter (fun roll -> roll = value)
+                |> List.filter (fun r -> r = value)
                 |> List.length
 
             (string value, float count)
@@ -102,7 +107,7 @@ module Client =
 
     [<SPAEntryPoint>]
     let Main () =
-        div [ attr.``class`` "min-h-screen bg-gray-900 text-white flex flex-col items-center p-6" ] [
+        div [ attr.``class`` "flex flex-col items-center p-6" ] [
 
             h1 [ attr.``class`` "text-4xl font-bold mb-8" ] [
                 text "ReDice 🎲"
@@ -116,9 +121,7 @@ module Client =
 
                 select [
                     attr.``class`` "mb-4 w-full bg-gray-700 p-3 rounded-xl text-white"
-                    on.change (fun el _ ->
-                        selectedDice.Set el?value
-                    )
+                    on.change (fun el _ -> selectedDice.Set el?value)
                 ] [
                     for dice in diceTypes do
                         diceTypeOption dice
@@ -130,9 +133,7 @@ module Client =
 
                 select [
                     attr.``class`` "mb-6 w-full bg-gray-700 p-3 rounded-xl text-white"
-                    on.change (fun el _ ->
-                        selectedCount.Set el?value
-                    )
+                    on.change (fun el _ -> selectedCount.Set el?value)
                 ] [
                     for count in diceCounts do
                         diceCountOption count
@@ -191,7 +192,7 @@ module Client =
                 Doc.BindView (fun dice ->
                     Doc.BindView (fun rolls ->
 
-                        if List.length rolls = 0 then
+                        if List.isEmpty rolls then
                             div [ attr.``class`` "text-gray-400 text-sm text-center" ] [
                                 text "No rolls yet."
                             ]
@@ -208,6 +209,15 @@ module Client =
 
                     ) allRolls.View
                 ) selectedDice.View
+
+                div [ attr.``class`` "mt-4 flex justify-center" ] [
+                    button [
+                        attr.``class`` "px-4 py-2 bg-red-600 hover:bg-red-700 rounded-xl text-sm font-semibold"
+                        on.click (fun _ _ -> resetStats ())
+                    ] [
+                        text "Reset Stats"
+                    ]
+                ]
             ]
         ]
         |> Doc.RunById "main"
