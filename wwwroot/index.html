@@ -22,64 +22,59 @@
 <body>
     <div class="min-h-screen bg-gray-950 text-white">
 
-    <!-- Mobile navbar -->
-    <div class="md:hidden bg-gray-900 border-b border-purple-500/20 p-4">
-        <div class="flex items-center justify-between">
-            <div class="text-2xl font-bold">ReDice 🎲</div>
+        <!-- Mobile navbar -->
+        <div class="md:hidden bg-gray-900 border-b border-purple-500/20 p-4">
+            <div class="flex items-center justify-between">
+                <div class="text-2xl font-bold">ReDice 🎲</div>
 
-            <details class="relative">
-                <summary class="cursor-pointer rounded-xl bg-gray-800 px-4 py-2 text-sm">
-                    ☰
-                </summary>
+                <details class="relative">
+                    <summary class="cursor-pointer rounded-xl bg-gray-800 px-4 py-2 text-sm">
+                        ☰
+                    </summary>
 
-                <div class="absolute right-0 mt-3 w-48 rounded-2xl bg-gray-900 border border-purple-500/20 p-3 shadow-xl z-50">
-                    <div class="bg-purple-600 text-white px-4 py-3 rounded-xl font-semibold mb-2">
-                        Single Mode
+                    <div class="absolute right-0 mt-3 w-48 rounded-2xl bg-gray-900 border border-purple-500/20 p-3 shadow-xl z-50">
+                        <div class="bg-purple-600 text-white px-4 py-3 rounded-xl font-semibold mb-2">
+                            Home
+                        </div>
+
+                        <div class="text-gray-400 px-4 py-3 rounded-xl">
+                            History
+                        </div>
+
+                        <div class="text-gray-400 px-4 py-3 rounded-xl">
+                            Settings
+                        </div>
                     </div>
+                </details>
+            </div>
+        </div>
+
+        <div class="flex">
+
+            <!-- Desktop sidebar -->
+            <aside class="hidden md:flex w-64 bg-gray-900 border-r border-purple-500/20 p-6 flex-col min-h-screen">
+                <h1 class="text-3xl font-bold mb-10">ReDice 🎲</h1>
+
+                <nav class="space-y-3 text-sm">
+                    <div class="bg-purple-600 text-white px-4 py-3 rounded-xl font-semibold">
+                        Home
+                    </div>
+
                     <div class="text-gray-400 px-4 py-3 rounded-xl">
-                        Multi Mode
+                        History
                     </div>
-                    <div class="text-gray-400 px-4 py-3 rounded-xl">
-                        Statistics
-                    </div>
+
                     <div class="text-gray-400 px-4 py-3 rounded-xl">
                         Settings
                     </div>
-                </div>
-            </details>
+                </nav>
+            </aside>
+
+            <!-- WebSharper app content -->
+            <main id="main" class="flex-1"></main>
+
         </div>
     </div>
-
-    <div class="flex">
-
-        <!-- Desktop sidebar -->
-        <aside class="hidden md:flex w-64 bg-gray-900 border-r border-purple-500/20 p-6 flex-col min-h-screen">
-            <h1 class="text-3xl font-bold mb-10">ReDice 🎲</h1>
-
-            <nav class="space-y-3 text-sm">
-                <div class="bg-purple-600 text-white px-4 py-3 rounded-xl font-semibold">
-                    Single Mode
-                </div>
-
-                <div class="text-gray-400 px-4 py-3 rounded-xl">
-                    Multi Mode
-                </div>
-
-                <div class="text-gray-400 px-4 py-3 rounded-xl">
-                    Statistics
-                </div>
-
-                <div class="text-gray-400 px-4 py-3 rounded-xl">
-                    Settings
-                </div>
-            </nav>
-        </aside>
-
-        <!-- WebSharper app content -->
-        <main id="main" class="flex-1"></main>
-
-    </div>
-</div>
 
     <script type="module" src="/Scripts/ReDice.min.js"></script>
 </body>
