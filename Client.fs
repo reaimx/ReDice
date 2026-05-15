@@ -12,6 +12,14 @@ module Client =
     type DiceType =
         | D4 | D6 | D8 | D10 | D12 | D20 | D100
 
+    type AppMode =
+        | SingleMode
+        | MultiMode
+
+    type ThemeMode =
+        | DarkTheme
+        | LightTheme
+
     type DiceExpression = {
         Count: int
         Dice: DiceType
@@ -20,18 +28,27 @@ module Client =
     type RollEntry = {
         Dice: DiceType
         Value: int
+        Mode: AppMode
     }
 
     type RollHistoryEntry = {
         Roll: DiceExpression
         Values: int list
         Total: int
+        PlayerName: string
+        PlayerId: int
+        Mode: AppMode
     }
 
     type ChartItem = {
         Label: string
         Count: int
         IsGap: bool
+    }
+
+    type Player = {
+        Id: int
+        Name: string
     }
 
     let diceTypeToText dice =
@@ -71,6 +88,10 @@ module Client =
     let diceCounts =
         [ 1; 2; 3; 4; 5; 6 ]
 
+    let selectedMode = Var.Create SingleMode
+    let selectedTheme = Var.Create DarkTheme
+    let showMobileStats = Var.Create false
+
     let selectedDice = Var.Create<DiceType option> None
     let selectedCount = Var.Create<int option> None
 
@@ -80,29 +101,44 @@ module Client =
     let allRolls = Var.Create<RollEntry list> []
     let rollHistory = Var.Create<RollHistoryEntry list> []
 
-    let diceIconPath dice =
-        "/icons/" + diceTypeToText dice + ".svg"
+    let players =
+        Var.Create<Player list> [
+            { Id = 1; Name = "Player 1" }
+        ]
 
-    let selectedDiceIconPath diceOption =
+    let currentPlayerId = Var.Create 1
+    let nextPlayerId = Var.Create 2
+
+    let diceIconPathForMode mode dice =
+        match mode with
+        | SingleMode -> "/icons/" + diceTypeToText dice + ".svg"
+        | MultiMode -> "/icons/" + diceTypeToText dice + "-orange.svg"
+
+    let emptyDiceIconPathForMode mode =
+        match mode with
+        | SingleMode -> "/icons/dice-empty.svg"
+        | MultiMode -> "/icons/dice-empty-orange.svg"
+
+    let selectedDiceIconPath mode diceOption =
         match diceOption with
-        | Some dice -> diceIconPath dice
-        | None -> "/icons/dice-empty.svg"
+        | Some dice -> diceIconPathForMode mode dice
+        | None -> emptyDiceIconPathForMode mode
 
-    let diceIconSmall diceOption =
+    let diceIconSmall mode diceOption =
         img [
-            attr.src (selectedDiceIconPath diceOption)
+            attr.src (selectedDiceIconPath mode diceOption)
             attr.``class`` "w-7 h-7 object-contain"
         ] []
 
-    let diceIconMedium diceOption =
+    let diceIconMedium mode diceOption =
         img [
-            attr.src (selectedDiceIconPath diceOption)
+            attr.src (selectedDiceIconPath mode diceOption)
             attr.``class`` "w-14 h-14 object-contain"
         ] []
 
-    let rollButtonIcon () =
+    let rollButtonIcon mode =
         img [
-            attr.src "/icons/dice-empty.svg"
+            attr.src (emptyDiceIconPathForMode mode)
             attr.``class`` "w-7 h-7 object-contain"
         ] []
 
@@ -118,6 +154,125 @@ module Client =
 
     let rollOne sides =
         int (JavaScript.Math.Random() * float sides) + 1
+
+    let modeTitle mode =
+        match mode with
+        | SingleMode -> "Single Player Mode"
+        | MultiMode -> "Multiplayer Mode"
+
+    let modeAccentText mode =
+        match mode with
+        | SingleMode -> "text-purple-300"
+        | MultiMode -> "text-orange-300"
+
+    let modeAccentTextLight mode =
+        match mode with
+        | SingleMode -> "text-purple-700"
+        | MultiMode -> "text-orange-700"
+
+    let accentText theme mode =
+        match theme with
+        | DarkTheme -> modeAccentText mode
+        | LightTheme -> modeAccentTextLight mode
+
+    let modeButtonColor mode =
+        match mode with
+        | SingleMode -> "bg-purple-600"
+        | MultiMode -> "bg-orange-600"
+
+    let modeGradient mode =
+        match mode with
+        | SingleMode -> "bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700"
+        | MultiMode -> "bg-gradient-to-r from-orange-600 to-amber-500 hover:from-orange-700 hover:to-amber-600"
+
+    let modeBorder mode =
+        match mode with
+        | SingleMode -> "border-purple-500/30"
+        | MultiMode -> "border-orange-500/30"
+
+    let modeStrongBorder mode =
+        match mode with
+        | SingleMode -> "border-purple-400/70"
+        | MultiMode -> "border-orange-400/70"
+
+    let modeSoftBg mode =
+        match mode with
+        | SingleMode -> "bg-purple-500/10"
+        | MultiMode -> "bg-orange-500/10"
+
+    let modeGlow mode =
+        match mode with
+        | SingleMode -> "shadow-[0_0_35px_rgba(217,70,239,0.38)]"
+        | MultiMode -> "shadow-[0_0_35px_rgba(249,115,22,0.38)]"
+
+    let modeBarGradient mode =
+        match mode with
+        | SingleMode -> "from-purple-700 to-pink-500"
+        | MultiMode -> "from-orange-700 to-amber-500"
+
+    let appBg theme =
+        match theme with
+        | DarkTheme -> "bg-gray-950 text-white"
+        | LightTheme -> "bg-slate-200 text-slate-900"
+
+    let sidebarBg theme =
+        match theme with
+        | DarkTheme -> "bg-gray-900 border-white/10"
+        | LightTheme -> "bg-slate-100 border-slate-300"
+
+    let panelBg theme =
+        match theme with
+        | DarkTheme -> "bg-gray-900/90"
+        | LightTheme -> "bg-slate-100/95"
+
+    let inputBg theme =
+        match theme with
+        | DarkTheme -> "bg-gray-950 text-white border-white/10"
+        | LightTheme -> "bg-slate-200 text-slate-900 border-slate-300"
+
+    let innerBoxBg theme =
+        match theme with
+        | DarkTheme -> "bg-gray-800/80 border-white/10"
+        | LightTheme -> "bg-slate-200/80 border-slate-300"
+
+    let mutedText theme =
+        match theme with
+        | DarkTheme -> "text-gray-400"
+        | LightTheme -> "text-slate-600"
+
+    let titleText theme =
+        match theme with
+        | DarkTheme -> "text-white"
+        | LightTheme -> "text-slate-900"
+
+    let cardHoverBorder theme =
+        match theme with
+        | DarkTheme -> "hover:border-white/20"
+        | LightTheme -> "hover:border-slate-400"
+
+    let playerDotColor playerId =
+        match playerId % 6 with
+        | 1 -> "bg-orange-500"
+        | 2 -> "bg-blue-500"
+        | 3 -> "bg-green-500"
+        | 4 -> "bg-red-500"
+        | 5 -> "bg-purple-500"
+        | _ -> "bg-yellow-500"
+
+    let findCurrentPlayerName playerList currentId =
+        playerList
+        |> List.tryFind (fun player -> player.Id = currentId)
+        |> function
+            | Some player -> player.Name
+            | None -> "Player 1"
+
+    let currentPlayerName () =
+        findCurrentPlayerName players.Value currentPlayerId.Value
+
+    let toggleTheme () =
+        match selectedTheme.Value with
+        | DarkTheme -> selectedTheme.Set LightTheme
+        | LightTheme -> selectedTheme.Set DarkTheme
 
     let rollDice () =
         match selectedDice.Value, selectedCount.Value with
@@ -136,12 +291,20 @@ module Client =
             let rollsText = rolls |> List.map string |> String.concat ", "
 
             let entries =
-                rolls |> List.map (fun roll -> { Dice = dice; Value = roll })
+                rolls |> List.map (fun roll -> { Dice = dice; Value = roll; Mode = selectedMode.Value })
+
+            let playerName =
+                match selectedMode.Value with
+                | SingleMode -> "Single Player"
+                | MultiMode -> currentPlayerName ()
 
             let historyEntry = {
                 Roll = expression
                 Values = rolls
                 Total = total
+                PlayerName = playerName
+                PlayerId = currentPlayerId.Value
+                Mode = selectedMode.Value
             }
 
             lastTotal.Set total
@@ -150,6 +313,58 @@ module Client =
             rollHistory.Set (rollHistory.Value @ [ historyEntry ])
 
         | _ -> ()
+
+    let addPlayer () =
+        let id = nextPlayerId.Value
+
+        players.Set (
+            players.Value @ [
+                { Id = id; Name = "Player " + string id }
+            ]
+        )
+
+        nextPlayerId.Set (id + 1)
+
+    let updatePlayerName playerId newName =
+        let safeName =
+            if newName = "" then
+                "Player " + string playerId
+            else
+                newName
+
+        let updated =
+            players.Value
+            |> List.map (fun player ->
+                if player.Id = playerId then
+                    { player with Name = safeName }
+                else
+                    player
+            )
+
+        players.Set updated
+
+    let nextPlayer () =
+        let currentPlayers = players.Value
+
+        match currentPlayers with
+        | [] -> ()
+        | _ ->
+            let currentIndex =
+                currentPlayers
+                |> List.tryFindIndex (fun player -> player.Id = currentPlayerId.Value)
+
+            match currentIndex with
+            | Some index ->
+                let nextIndex =
+                    if index + 1 >= List.length currentPlayers then
+                        0
+                    else
+                        index + 1
+
+                currentPlayerId.Set currentPlayers.[nextIndex].Id
+
+            | None ->
+                currentPlayerId.Set currentPlayers.Head.Id
 
     let chartItem label count =
         { Label = label; Count = count; IsGap = false }
@@ -215,9 +430,9 @@ module Client =
     let recentFiveHistory (history: RollHistoryEntry list) =
         history |> List.rev |> takeFirst 5
 
-    let rollsForDice (dice: DiceType) (rolls: RollEntry list) =
+    let rollsForDice mode dice (rolls: RollEntry list) =
         rolls
-        |> List.filter (fun roll -> roll.Dice = dice)
+        |> List.filter (fun roll -> roll.Mode = mode && roll.Dice = dice)
         |> List.map (fun roll -> roll.Value)
 
     let diceTypeOption dice =
@@ -230,14 +445,149 @@ module Client =
             text (string count)
         ]
 
-    let neonBarChart items =
+    let modeButton buttonMode currentMode =
+        let isActive = buttonMode = currentMode
+
+        button [
+            attr.``class`` (
+                if isActive then
+                    "px-6 py-3 rounded-xl " + modeButtonColor buttonMode + " text-white font-semibold shadow-lg"
+                else
+                    "px-6 py-3 rounded-xl text-gray-400 font-semibold hover:text-white"
+            )
+            on.click (fun _ _ ->
+                selectedMode.Set buttonMode
+
+                selectedDice.Set None
+                selectedCount.Set None
+
+                lastTotal.Set 0
+                lastRolls.Set ""
+            )
+           
+        ] [
+            text (
+                match buttonMode with
+                | SingleMode -> "Single Player"
+                | MultiMode -> "Multi Player"
+            )
+        ]
+
+    let sideMenuItem theme mode label isActive =
+        let activeClass =
+            if isActive then
+                modeButtonColor mode + " text-white font-semibold"
+            else
+                match theme with
+                | DarkTheme -> "text-gray-400 hover:text-white"
+                | LightTheme -> "text-slate-600 hover:text-slate-900"
+
+        div [ attr.``class`` ("px-4 py-3 rounded-xl text-sm " + activeClass) ] [
+            text label
+        ]
+
+    let sidebar theme mode =
+        aside [ attr.``class`` ("hidden md:flex w-64 border-r p-6 flex-col min-h-screen " + sidebarBg theme) ] [
+            div [ attr.``class`` "flex items-center gap-3 mb-10" ] [
+                img [
+                    attr.src (diceIconPathForMode mode D20)
+                    attr.``class`` "w-9 h-9 object-contain"
+                ] []
+
+                h1 [ attr.``class`` ("text-3xl font-bold " + titleText theme) ] [
+                    text "ReDice"
+                ]
+            ]
+
+            nav [ attr.``class`` "space-y-3" ] [
+                sideMenuItem theme mode "Home" true
+                sideMenuItem theme mode "History" false
+                sideMenuItem theme mode "Import / Export" false
+                sideMenuItem theme mode "About" false
+            ]
+        ]
+
+    let mobileNavbar theme mode =
+        div [ attr.``class`` ("md:hidden border-b p-4 " + sidebarBg theme) ] [
+            div [ attr.``class`` "flex items-center justify-between" ] [
+                div [ attr.``class`` "flex items-center gap-3" ] [
+                    img [
+                        attr.src (diceIconPathForMode mode D20)
+                        attr.``class`` "w-8 h-8 object-contain"
+                    ] []
+
+                    div [ attr.``class`` ("text-2xl font-bold " + titleText theme) ] [
+                        text "ReDice"
+                    ]
+                ]
+
+                details [ attr.``class`` "relative" ] [
+                    summary [ attr.``class`` "cursor-pointer rounded-xl bg-gray-800 px-4 py-2 text-sm text-white" ] [
+                        text "☰"
+                    ]
+
+                    div [ attr.``class`` ("absolute right-0 mt-3 w-52 rounded-2xl border p-3 shadow-xl z-50 " + sidebarBg theme) ] [
+                        sideMenuItem theme mode "Home" true
+                        sideMenuItem theme mode "History" false
+                        sideMenuItem theme mode "Import / Export" false
+                        sideMenuItem theme mode "About" false
+                    ]
+                ]
+            ]
+        ]
+
+    let chartYAxisLabel topValue label =
+        div [
+            attr.``class`` "absolute right-1 -translate-y-1/2 text-[10px] text-gray-500 leading-none"
+            attr.style ("top: " + topValue + ";")
+        ] [
+            text (string label)
+        ]
+
+    let chartGridLine topValue =
+        div [
+            attr.``class`` "absolute left-0 right-0 border-t border-white/10"
+            attr.style ("top: " + topValue + ";")
+        ] []
+
+    let chartBar mode chartMax item =
+        if item.IsGap then
+            div [ attr.``class`` "w-[18px] shrink-0 flex items-end justify-center" ] [
+                div [ attr.``class`` "w-px h-[170px] bg-white/20" ] []
+            ]
+        else
+            let height =
+                if item.Count = 0 then
+                    6
+                else
+                    int ((float item.Count / float chartMax) * 170.0)
+
+            div [ attr.``class`` "flex-1 max-w-[34px] flex items-end" ] [
+                div [
+                    attr.``class`` ("w-full rounded-t-xl bg-gradient-to-t " + modeBarGradient mode + " border border-white/30 shadow-[0_0_14px_rgba(168,85,247,0.35)]")
+                    attr.style ("height: " + string height + "px; opacity: " + (if item.Count = 0 then "0.22" else "1") + ";")
+                ] []
+            ]
+
+    let chartXLabel item =
+        if item.IsGap then
+            div [ attr.``class`` "w-[18px] shrink-0" ] []
+        else
+            div [ attr.``class`` "flex-1 max-w-[34px] text-center text-[10px] text-gray-300 leading-none" ] [
+                text item.Label
+            ]
+
+    let neonBarChart mode items =
         let realItems =
             items |> List.filter (fun item -> not item.IsGap)
 
         let maxCount =
-            realItems
-            |> List.map (fun item -> item.Count)
-            |> List.max
+            if List.isEmpty realItems then
+                5
+            else
+                realItems
+                |> List.map (fun item -> item.Count)
+                |> List.max
 
         let chartMax =
             if maxCount < 5 then 5 else maxCount
@@ -251,399 +601,651 @@ module Client =
                 ("100%", 0)
             ]
 
-        div [ attr.``class`` "h-[245px] w-full grid grid-cols-[42px_1fr] gap-2 pt-4 pb-2 pr-6" ] [
+        let yLabelDocs =
+            yLabels |> List.map (fun (topValue, label) -> chartYAxisLabel topValue label)
 
-            div [ attr.``class`` "relative h-[190px]" ] [
-                yield!
-                    yLabels
-                    |> List.map (fun (topValue, label) ->
-                        div [
-                            attr.``class`` "absolute right-1 -translate-y-1/2 text-[10px] text-gray-500 leading-none"
-                            attr.style ("top: " + topValue + ";")
-                        ] [
-                            text (string label)
-                        ]
-                    )
-            ]
+        let gridDocs =
+            yLabels |> List.map (fun (topValue, _) -> chartGridLine topValue)
+
+        let barDocs =
+            items |> List.map (fun item -> chartBar mode chartMax item)
+
+        let xLabelDocs =
+            items |> List.map chartXLabel
+
+        div [ attr.``class`` "h-[245px] w-full grid grid-cols-[42px_1fr] gap-2 pt-4 pb-2 pr-6" ] [
+            div [ attr.``class`` "relative h-[190px]" ] yLabelDocs
 
             div [ attr.``class`` "flex flex-col" ] [
                 div [ attr.``class`` "relative h-[190px]" ] [
+                    div [ attr.``class`` "absolute inset-0" ] gridDocs
+                    div [ attr.``class`` "absolute inset-0 flex items-end justify-start gap-1.5 px-1" ] barDocs
+                ]
 
-                    yield!
-                        yLabels
-                        |> List.map (fun (topValue, label) ->
-                            div [
-                                attr.``class`` "absolute left-0 right-0 border-t border-purple-500/10"
-                                attr.style ("top: " + topValue + ";")
-                            ] []
-                        )
+                div [ attr.``class`` "h-6 mt-2 flex items-start justify-start gap-1.5 px-1" ] xLabelDocs
+            ]
+        ]
 
-                    div [ attr.``class`` "absolute inset-0 flex items-end justify-start gap-1.5 px-1" ] [
-                        yield!
-                            items
-                            |> List.map (fun item ->
-                                if item.IsGap then
-                                    div [ attr.``class`` "w-[18px] shrink-0 flex items-end justify-center" ] [
-                                        div [ attr.``class`` "w-px h-[170px] bg-purple-500/20" ] []
-                                    ]
-                                else
-                                    let height =
-                                        if item.Count = 0 then
-                                            6
-                                        else
-                                            int ((float item.Count / float chartMax) * 170.0)
+    let customDistributionChart mode data =
+        neonBarChart mode data
 
-                                    div [ attr.``class`` "flex-1 max-w-[34px] flex items-end" ] [
-                                        div [
-                                            attr.``class`` "w-full rounded-t-xl bg-gradient-to-t from-purple-700 to-pink-500 border border-purple-300/40 shadow-[0_0_14px_rgba(168,85,247,0.35)]"
-                                            attr.style ("height: " + string height + "px; opacity: " + (if item.Count = 0 then "0.22" else "1") + ";")
-                                        ] []
-                                    ]
-                            )
+    let customD100DistributionChart mode rolls =
+        rolls
+        |> getD100ChartData
+        |> neonBarChart mode
+
+    let currentPlayerNameDoc () =
+        Doc.BindView (fun currentId ->
+            let name = findCurrentPlayerName players.Value currentId
+            text name
+        ) currentPlayerId.View
+
+    let currentPlayerDotDoc () =
+        Doc.BindView (fun currentId ->
+            div [ attr.``class`` ("w-3 h-3 rounded-full " + playerDotColor currentId) ] []
+        ) currentPlayerId.View
+
+    let rollSetupDoc () =
+        Doc.BindView (fun diceOption ->
+            Doc.BindView (fun countOption ->
+                match diceOption, countOption with
+                | Some dice, Some count ->
+                    text (string count + " x " + diceTypeToText dice)
+                | _ ->
+                    text "Select dice"
+            ) selectedCount.View
+        ) selectedDice.View
+
+    let lastRollTitleDoc mode =
+        match mode with
+        | SingleMode ->
+            Doc.BindView (fun diceOption ->
+                Doc.BindView (fun countOption ->
+                    match diceOption, countOption with
+                    | Some dice, Some count ->
+                        text (string count + " x " + diceTypeToText dice)
+                    | _ ->
+                        text "No roll yet"
+                ) selectedCount.View
+            ) selectedDice.View
+
+        | MultiMode ->
+            div [ attr.``class`` "flex items-center gap-2" ] [
+                currentPlayerNameDoc ()
+                currentPlayerDotDoc ()
+            ]
+
+    let recentRollTitle mode roll =
+        match mode with
+        | SingleMode ->
+            string roll.Roll.Count + " x " + diceTypeToText roll.Roll.Dice
+        | MultiMode ->
+            roll.PlayerName
+
+    let recentRollDetail mode roll =
+        match mode with
+        | SingleMode ->
+            roll.Values |> List.map string |> String.concat ", "
+        | MultiMode ->
+            string roll.Roll.Count + " x " + diceTypeToText roll.Roll.Dice + " · " + (roll.Values |> List.map string |> String.concat ", ")
+
+    let recentRollDoc theme mode roll =
+        let titleText = recentRollTitle mode roll
+        let detailText = recentRollDetail mode roll
+
+        let titleChildren =
+            match mode with
+            | SingleMode ->
+                [ text titleText ]
+            | MultiMode ->
+                [
+                    div [ attr.``class`` ("w-2.5 h-2.5 rounded-full " + playerDotColor roll.PlayerId) ] []
+                    text titleText
+                ]
+
+        div [ attr.``class`` ("flex items-center justify-between border px-3 py-2 rounded-2xl transition " + innerBoxBg theme + " " + cardHoverBorder theme) ] [
+            div [ attr.``class`` "flex items-center gap-3 min-w-0" ] [
+                img [
+                    attr.src (diceIconPathForMode mode roll.Roll.Dice)
+                    attr.``class`` "w-9 h-9 object-contain"
+                ] []
+
+                div [ attr.``class`` "min-w-0" ] [
+                    div [ attr.``class`` ("flex items-center gap-2 text-xs font-bold " + accentText theme mode) ] titleChildren
+
+                    div [ attr.``class`` ("text-[11px] mt-0.5 truncate max-w-[250px] " + mutedText theme) ] [
+                        text detailText
+                    ]
+                ]
+            ]
+
+            span [ attr.``class`` ("text-xl font-bold shrink-0 pl-3 " + accentText theme mode) ] [
+                text (string roll.Total)
+            ]
+        ]
+
+    let playerRow theme mode currentId player =
+        let activeClass =
+            if player.Id = currentId then
+                match mode with
+                | SingleMode -> "bg-purple-500/15 border-purple-400/40"
+                | MultiMode -> "bg-orange-500/15 border-orange-400/40"
+            else
+                match theme with
+                | DarkTheme -> "bg-gray-800/70 border-white/10"
+                | LightTheme -> "bg-slate-200/80 border-slate-300"
+
+        div [ attr.``class`` ("flex items-center gap-2 border rounded-xl p-2 " + activeClass) ] [
+            div [ attr.``class`` ("w-3 h-3 rounded-full " + playerDotColor player.Id) ] []
+
+            input [
+                attr.value player.Name
+                attr.``class`` ("w-full bg-transparent text-sm outline-none " + titleText theme)
+                on.change (fun el _ -> updatePlayerName player.Id el?value)
+            ] []
+        ]
+
+    let currentPlayerPanel theme mode =
+        div [ attr.``class`` "mt-4 mb-3 flex items-center justify-between" ] [
+            div [] [
+                p [ attr.``class`` ("text-xs uppercase tracking-wide " + mutedText theme) ] [
+                    text "Current player"
+                ]
+
+                div [ attr.``class`` ("flex items-center gap-2 text-2xl font-bold mt-1 " + accentText theme mode) ] [
+                    currentPlayerNameDoc ()
+                    currentPlayerDotDoc ()
+                ]
+            ]
+
+            button [
+                attr.``class`` ("px-5 py-3 rounded-xl border " + modeStrongBorder mode + " " + accentText theme mode + " font-bold hover:bg-white/5")
+                on.click (fun _ _ -> nextPlayer ())
+            ] [
+                text "NEXT PLAYER →"
+            ]
+        ]
+
+    let playersPanel theme mode =
+        div [ attr.``class`` ("h-[420px] border " + panelBg theme + " " + modeBorder mode + " p-5 rounded-3xl shadow-2xl overflow-hidden") ] [
+            div [ attr.``class`` "flex items-center justify-between mb-4" ] [
+                h2 [ attr.``class`` ("text-xl font-bold " + titleText theme) ] [
+                    text "Players"
+                ]
+
+                button [
+                    attr.``class`` ("w-9 h-9 rounded-xl border " + modeStrongBorder mode + " " + accentText theme mode + " text-xl font-bold hover:bg-white/5")
+                    on.click (fun _ _ -> addPlayer ())
+                ] [
+                    text "+"
+                ]
+            ]
+
+            Doc.BindView (fun currentPlayers ->
+                Doc.BindView (fun currentId ->
+                    let playerDocs =
+                        currentPlayers
+                        |> List.map (fun player -> playerRow theme mode currentId player)
+
+                    div [ attr.``class`` "space-y-2 h-[330px] overflow-y-auto pr-1" ] playerDocs
+                ) currentPlayerId.View
+            ) players.View
+        ]
+
+    let recentRollsPanel theme mode =
+        div [ attr.``class`` ("h-[420px] border " + panelBg theme + " " + modeBorder mode + " p-6 rounded-3xl shadow-2xl overflow-hidden") ] [
+            h2 [ attr.``class`` ("text-2xl font-bold mb-1 " + titleText theme) ] [
+                text "Recent Rolls"
+            ]
+
+            p [ attr.``class`` ("text-sm mb-5 " + mutedText theme) ] [
+                text "Your latest dice rolls"
+            ]
+
+            Doc.BindView (fun history ->
+                if List.isEmpty history then
+                    div [ attr.``class`` ("h-[300px] flex flex-col items-center justify-center text-center " + mutedText theme) ] [
+                        div [ attr.``class`` "w-14 h-14 rounded-2xl border border-white/20 flex items-center justify-center text-2xl mb-4" ] [
+                            text "◷"
+                        ]
+
+                        div [ attr.``class`` ("text-lg font-semibold " + titleText theme) ] [
+                            text "No recent rolls"
+                        ]
+
+                        div [ attr.``class`` ("text-sm mt-1 " + mutedText theme) ] [
+                            text "Your roll history will show up here."
+                        ]
+                    ]
+                else
+                    let recentDocs =
+                        history
+                        |> List.filter (fun roll -> roll.Mode = mode)
+                        |> recentFiveHistory
+                        |> List.map (fun roll -> recentRollDoc theme mode roll)
+
+                    div [ attr.``class`` "space-y-2 h-[315px] overflow-hidden pr-1" ] recentDocs
+            ) rollHistory.View
+        ]
+
+    let distributionPanel theme mode =
+        div [ attr.``class`` ("h-[330px] border " + panelBg theme + " " + modeBorder mode + " p-6 rounded-3xl shadow-2xl overflow-hidden") ] [
+            div [ attr.``class`` "flex items-start justify-between mb-4" ] [
+                div [] [
+                    h2 [ attr.``class`` ("text-2xl font-bold " + titleText theme) ] [
+                        text "Roll Distribution"
+                    ]
+
+                    p [ attr.``class`` ("text-sm mt-1 " + mutedText theme) ] [
+                        text "Distribution of results for the selected dice."
+                    ]
+                ]
+            ]
+
+            Doc.BindView (fun diceOption ->
+                Doc.BindView (fun rolls ->
+                    match diceOption with
+                    | None ->
+                        div [ attr.``class`` ("h-56 flex flex-col items-center justify-center text-center " + mutedText theme) ] [
+                            div [ attr.``class`` ("text-4xl mb-3 " + accentText theme mode) ] [
+                                text "▥"
+                            ]
+
+                            div [ attr.``class`` ("text-lg font-semibold " + titleText theme) ] [
+                                text "No data to display"
+                            ]
+
+                            div [ attr.``class`` ("text-sm mt-1 " + mutedText theme) ] [
+                                text "Roll some dice to see the distribution."
+                            ]
+                        ]
+
+                    | Some dice ->
+                        let filteredRolls = rollsForDice mode dice rolls
+
+                        if List.isEmpty filteredRolls then
+                            div [ attr.``class`` ("h-56 flex flex-col items-center justify-center text-center " + mutedText theme) ] [
+                                div [ attr.``class`` ("text-lg font-semibold " + titleText theme) ] [
+                                    text ("No " + diceTypeToText dice + " rolls yet")
+                                ]
+
+                                div [ attr.``class`` ("text-sm mt-1 " + mutedText theme) ] [
+                                    text "Roll this dice to create chart data."
+                                ]
+                            ]
+                        else
+                            match dice with
+                            | D100 ->
+                                customD100DistributionChart mode filteredRolls
+                            | _ ->
+                                let sides = diceSides dice
+                                let data = getChartData sides filteredRolls
+                                customDistributionChart mode data
+                ) allRolls.View
+            ) selectedDice.View
+        ]
+
+    let rollButtonDoc mode =
+        Doc.BindView (fun diceOption ->
+            Doc.BindView (fun countOption ->
+                match diceOption, countOption with
+                | Some _, Some _ ->
+                    button [
+                        attr.``class`` ("w-full py-4 " + modeGradient mode + " rounded-2xl font-bold tracking-wide shadow-lg flex items-center justify-center gap-3")
+                        on.click (fun _ _ -> rollDice ())
+                    ] [
+                        rollButtonIcon mode
+                        text "ROLL DICE"
+                    ]
+
+                | _ ->
+                    button [
+                        attr.``class`` "w-full py-4 bg-gray-700 text-gray-400 rounded-2xl font-bold tracking-wide cursor-not-allowed flex items-center justify-center gap-3"
+                    ] [
+                        rollButtonIcon mode
+                        text "SELECT DICE FIRST"
+                    ]
+            ) selectedCount.View
+        ) selectedDice.View
+
+    let lastRollDesktop theme mode =
+        div [ attr.``class`` "hidden md:block" ] [
+            div [ attr.``class`` "grid grid-cols-1 md:grid-cols-[190px_1fr] gap-7 items-center" ] [
+                div [ attr.``class`` ("w-36 h-36 rounded-3xl border-2 " + modeStrongBorder mode + " flex items-center justify-center " + modeGlow mode) ] [
+                    h2 [ attr.``class`` "text-6xl font-black text-white leading-none drop-shadow-[0_0_16px_rgba(255,255,255,0.35)] -mt-2" ] [
+                        Doc.BindView (fun total ->
+                            if total = 0 then
+                                text "-"
+                            else
+                                text (string total)
+                        ) lastTotal.View
                     ]
                 ]
 
-                div [ attr.``class`` "h-6 mt-2 flex items-start justify-start gap-1.5 px-1" ] [
-                    yield!
-                        items
-                        |> List.map (fun item ->
-                            if item.IsGap then
-                                div [ attr.``class`` "w-[18px] shrink-0" ] []
-                            else
-                                let labelClass =
-                                    if item.Label.Length > 2 then
-                                        "flex-1 max-w-[34px] text-center text-[9px] text-gray-300 leading-none"
-                                    else
-                                        "flex-1 max-w-[34px] text-center text-[10px] text-gray-300 leading-none"
+                div [] [
+                    div [ attr.``class`` ("text-2xl font-bold " + accentText theme mode) ] [
+                        lastRollTitleDoc mode
+                    ]
 
-                                div [ attr.``class`` labelClass ] [
-                                    text item.Label
-                                ]
-                        )
+                    div [ attr.``class`` ("text-sm mt-2 " + mutedText theme) ] [
+                        Doc.BindView (fun rolls ->
+                            if rolls = "" then
+                                text "Rolls: -"
+                            else
+                                text ("Rolls: " + rolls)
+                        ) lastRolls.View
+                    ]
                 ]
             ]
         ]
 
-    let customDistributionChart data =
-        neonBarChart data
-
-    let customD100DistributionChart rolls =
-        rolls
-        |> getD100ChartData
-        |> neonBarChart
-
-    [<SPAEntryPoint>]
-    let Main () =
-        div [ attr.``class`` "w-full" ] [
-            div [ attr.``class`` "max-w-[1420px] mx-auto p-4 md:p-6 xl:p-8" ] [
-
-                div [ attr.``class`` "mb-7 flex flex-col lg:flex-row lg:items-center lg:justify-between gap-5" ] [
-                    div [] [
-                        h1 [ attr.``class`` "text-3xl md:text-4xl font-bold text-purple-300 uppercase tracking-wide" ] [
-                            text "Single Player Mode"
-                        ]
-
-                        p [ attr.``class`` "text-gray-400 mt-2" ] [
-                            text "Roll your dice and track your adventure."
-                        ]
+    let lastRollMobile theme mode =
+        div [ attr.``class`` "md:hidden" ] [
+            div [ attr.``class`` "grid grid-cols-[110px_1fr] gap-4 items-center" ] [
+                div [ attr.``class`` ("rounded-2xl " + modeSoftBg mode + " px-4 py-3") ] [
+                    p [ attr.``class`` ("text-xs uppercase tracking-wide " + mutedText theme) ] [
+                        text "Total"
                     ]
 
-                    div [ attr.``class`` "flex items-center gap-3" ] [
-                        div [ attr.``class`` "flex bg-gray-900 border border-purple-500/20 rounded-2xl p-1 shadow-lg shadow-purple-950/20" ] [
-                            button [ attr.``class`` "px-6 py-3 rounded-xl bg-purple-600 text-white font-semibold shadow-lg shadow-purple-900/30" ] [
-                                text "Single Player"
-                            ]
-
-                            button [ attr.``class`` "px-6 py-3 rounded-xl text-gray-400 font-semibold" ] [
-                                text "Multi Player"
-                            ]
-                        ]
-
-                        button [ attr.``class`` "w-11 h-11 rounded-xl bg-gray-900 border border-purple-500/20 text-purple-300 text-xl" ] [
-                            text "☼"
-                        ]
+                    div [ attr.``class`` ("text-4xl font-black mt-1 " + accentText theme mode) ] [
+                        Doc.BindView (fun total ->
+                            if total = 0 then
+                                text "-"
+                            else
+                                text (string total)
+                        ) lastTotal.View
                     ]
                 ]
 
-                div [ attr.``class`` "grid grid-cols-1 xl:grid-cols-2 gap-6 items-start" ] [
+                div [] [
+                    div [ attr.``class`` ("text-xl font-bold " + accentText theme mode) ] [
+                        lastRollTitleDoc mode
+                    ]
 
-                    div [ attr.``class`` "space-y-6" ] [
+                    div [ attr.``class`` ("text-sm mt-1 " + mutedText theme) ] [
+                        Doc.BindView (fun rolls ->
+                            if rolls = "" then
+                                text "Rolls: -"
+                            else
+                                text ("Rolls: " + rolls)
+                        ) lastRolls.View
+                    ]
+                ]
+            ]
+        ]
 
-                        div [ attr.``class`` "h-[774px] bg-gray-900/90 border border-purple-500/30 p-6 rounded-3xl shadow-2xl shadow-purple-950/30 overflow-hidden flex flex-col" ] [
-                            div [ attr.``class`` "mb-6" ] [
-                                h2 [ attr.``class`` "text-2xl font-bold uppercase" ] [
-                                    text "Roll Dice"
-                                ]
+    let rollDicePanel theme mode =
+        let optionalCurrentPlayer =
+            match mode with
+            | SingleMode -> []
+            | MultiMode -> [ currentPlayerPanel theme mode ]
 
-                                p [ attr.``class`` "text-sm text-gray-400 mt-1" ] [
-                                    text "Choose your dice setup and start rolling."
-                                ]
-                            ]
+        let firstPart =
+            [
+                div [ attr.``class`` "mb-6" ] [
+                    h2 [ attr.``class`` ("text-2xl font-bold uppercase " + titleText theme) ] [
+                        text "Roll Dice"
+                    ]
 
-                            div [ attr.``class`` "grid grid-cols-1 md:grid-cols-2 gap-4 mb-5" ] [
-                                div [ attr.``class`` "bg-gray-800/80 border border-purple-500/20 rounded-2xl p-4" ] [
-                                    p [ attr.``class`` "text-xs uppercase tracking-wide text-gray-500 mb-3" ] [
-                                        text "Dice Type"
-                                    ]
+                    p [ attr.``class`` ("text-sm mt-1 " + mutedText theme) ] [
+                        text "Choose your dice setup and start rolling."
+                    ]
+                ]
 
-                                    div [ attr.``class`` "relative" ] [
-                                        div [ attr.``class`` "absolute left-4 top-1/2 -translate-y-1/2 pointer-events-none z-10" ] [
-                                            Doc.BindView (fun diceOption ->
-                                                diceIconSmall diceOption
-                                            ) selectedDice.View
-                                        ]
+                div [ attr.``class`` "grid grid-cols-1 md:grid-cols-2 gap-4 mb-5" ] [
+                    div [ attr.``class`` ("border rounded-2xl p-4 " + innerBoxBg theme) ] [
+                        p [ attr.``class`` ("text-xs uppercase tracking-wide mb-3 " + mutedText theme) ] [
+                            text "Dice Type"
+                        ]
 
-                                        select [
-                                            attr.``class`` "w-full h-12 bg-gray-950 border border-purple-500/20 pl-14 pr-4 rounded-xl text-white outline-none"
-                                            on.change (fun el _ ->
-                                                selectedDice.Set (diceTextToTypeOption el?value)
-                                            )
-                                        ] [
-                                            option [
-                                                attr.value ""
-                                                attr.selected "selected"
-                                            ] [
-                                                text "Select dice"
-                                            ]
-
-                                            for dice in diceTypes do
-                                                diceTypeOption dice
-                                        ]
-                                    ]
-                                ]
-
-                                div [ attr.``class`` "bg-gray-800/80 border border-purple-500/20 rounded-2xl p-4" ] [
-                                    p [ attr.``class`` "text-xs uppercase tracking-wide text-gray-500 mb-3" ] [
-                                        text "Number of Dice"
-                                    ]
-
-                                    select [
-                                        attr.``class`` "w-full h-12 bg-gray-950 border border-purple-500/20 px-4 rounded-xl text-white outline-none"
-                                        on.change (fun el _ ->
-                                            selectedCount.Set (countToIntOption el?value)
-                                        )
-                                    ] [
-                                        option [
-                                            attr.value ""
-                                            attr.selected "selected"
-                                        ] [
-                                            text "Select amount"
-                                        ]
-
-                                        for count in diceCounts do
-                                            diceCountOption count
-                                    ]
-                                ]
-                            ]
-
-                            div [ attr.``class`` "mb-5 bg-purple-500/10 border border-purple-400/70 rounded-2xl p-5 flex items-center justify-between shadow-[0_0_25px_rgba(168,85,247,0.18)]" ] [
-                                div [] [
-                                    p [ attr.``class`` "text-xs uppercase tracking-wide text-gray-500" ] [
-                                        text "Current setup"
-                                    ]
-
-                                    div [ attr.``class`` "text-2xl font-bold text-white mt-1" ] [
-                                        Doc.BindView (fun diceOption ->
-                                            Doc.BindView (fun countOption ->
-                                                match diceOption, countOption with
-                                                | Some dice, Some count ->
-                                                    text (string count + " x " + diceTypeToText dice)
-                                                | _ ->
-                                                    text "Select dice and amount"
-                                            ) selectedCount.View
-                                        ) selectedDice.View
-                                    ]
-                                ]
-
+                        div [ attr.``class`` "relative" ] [
+                            div [ attr.``class`` "absolute left-4 top-1/2 -translate-y-1/2 pointer-events-none z-10" ] [
                                 Doc.BindView (fun diceOption ->
-                                    diceIconMedium diceOption
+                                    diceIconSmall mode diceOption
                                 ) selectedDice.View
                             ]
 
-                            Doc.BindView (fun diceOption ->
-                                Doc.BindView (fun countOption ->
-                                    match diceOption, countOption with
-                                    | Some _, Some _ ->
-                                        button [
-                                            attr.``class`` "w-full py-4 bg-gradient-to-r from-purple-600 to-pink-600 rounded-2xl hover:from-purple-700 hover:to-pink-700 font-bold tracking-wide shadow-lg shadow-purple-900/30 flex items-center justify-center gap-3"
-                                            on.click (fun _ _ -> rollDice ())
-                                        ] [
-                                            rollButtonIcon ()
-                                            text "ROLL DICE"
-                                        ]
-
-                                    | _ ->
-                                        button [
-                                            attr.``class`` "w-full py-4 bg-gray-700 text-gray-400 rounded-2xl font-bold tracking-wide cursor-not-allowed flex items-center justify-center gap-3"
-                                        ] [
-                                            rollButtonIcon ()
-                                            text "SELECT DICE FIRST"
-                                        ]
-                                ) selectedCount.View
-                            ) selectedDice.View
-
-                            div [ attr.``class`` "mt-6 border border-purple-500/30 rounded-3xl p-6 flex-1 shadow-[0_0_30px_rgba(168,85,247,0.08)]" ] [
-                                h2 [ attr.``class`` "text-2xl font-bold mb-5" ] [
-                                    text "Last Roll"
+                            select [
+                                attr.``class`` ("w-full h-12 pl-14 pr-4 rounded-xl outline-none " + inputBg theme)
+                                on.change (fun el _ ->
+                                    selectedDice.Set (diceTextToTypeOption el?value)
+                                )
+                            ] [
+                                option [
+                                    attr.value ""
+                                    attr.selected "selected"
+                                ] [
+                                    text "Select dice"
                                 ]
 
-                                div [ attr.``class`` "grid grid-cols-1 md:grid-cols-[210px_1fr] gap-7 items-center" ] [
-                                    div [ attr.``class`` "w-44 h-44 rounded-3xl border-2 border-purple-400/90 flex items-center justify-center shadow-[0_0_35px_rgba(217,70,239,0.38)]" ] [
-                                        h2 [ attr.``class`` "text-7xl font-black text-white leading-none drop-shadow-[0_0_16px_rgba(255,255,255,0.35)] -mt-2" ] [
-                                            Doc.BindView (fun total ->
-                                                if total = 0 then
-                                                    text "-"
-                                                else
-                                                    text (string total)
-                                            ) lastTotal.View
-                                        ]
-                                    ]
+                                for dice in diceTypes do
+                                    diceTypeOption dice
+                            ]
+                        ]
+                    ]
 
-                                    div [] [
-                                        div [ attr.``class`` "text-2xl font-bold text-purple-300" ] [
-                                            Doc.BindView (fun diceOption ->
-                                                Doc.BindView (fun countOption ->
-                                                    match diceOption, countOption with
-                                                    | Some dice, Some count ->
-                                                        text (string count + " x " + diceTypeToText dice)
-                                                    | _ ->
-                                                        text "No roll yet"
-                                                ) selectedCount.View
-                                            ) selectedDice.View
-                                        ]
+                    div [ attr.``class`` ("border rounded-2xl p-4 " + innerBoxBg theme) ] [
+                        p [ attr.``class`` ("text-xs uppercase tracking-wide mb-3 " + mutedText theme) ] [
+                            text "Number of Dice"
+                        ]
 
-                                        div [ attr.``class`` "text-sm text-gray-400 mt-2" ] [
-                                            Doc.BindView (fun rolls ->
-                                                if rolls = "" then
-                                                    text "Rolls: -"
-                                                else
-                                                    text ("Rolls: " + rolls)
-                                            ) lastRolls.View
-                                        ]
-                                    ]
+                        select [
+                            attr.``class`` ("w-full h-12 px-4 rounded-xl outline-none " + inputBg theme)
+                            on.change (fun el _ ->
+                                selectedCount.Set (countToIntOption el?value)
+                            )
+                        ] [
+                            option [
+                                attr.value ""
+                                attr.selected "selected"
+                            ] [
+                                text "Select amount"
+                            ]
+
+                            for count in diceCounts do
+                                diceCountOption count
+                        ]
+                    ]
+                ]
+
+                div [ attr.``class`` ("mb-5 " + modeSoftBg mode + " border " + modeStrongBorder mode + " rounded-2xl p-5 flex items-center justify-between shadow-[0_0_25px_rgba(168,85,247,0.18)]") ] [
+                    div [] [
+                        p [ attr.``class`` ("text-xs uppercase tracking-wide " + mutedText theme) ] [
+                            text "Current setup"
+                        ]
+
+                        div [ attr.``class`` ("text-2xl font-bold mt-1 " + titleText theme) ] [
+                            rollSetupDoc ()
+                        ]
+                    ]
+
+                    Doc.BindView (fun diceOption ->
+                        diceIconMedium mode diceOption
+                    ) selectedDice.View
+                ]
+
+                rollButtonDoc mode
+            ]
+
+        let lastPart =
+            [
+                div [ attr.``class`` ("mt-4 border " + modeBorder mode + " rounded-3xl px-5 py-4 md:px-6 md:py-5 md:flex-1 min-h-0 overflow-hidden shadow-[0_0_30px_rgba(168,85,247,0.08)] " + modeSoftBg mode) ] [
+                    div [ attr.``class`` "md:hidden" ] [
+                        h2 [ attr.``class`` ("text-lg font-bold mb-3 " + titleText theme) ] [
+                            text "Last Roll"
+                        ]
+
+                        div [ attr.``class`` "grid grid-cols-[85px_1fr] gap-4 items-center" ] [
+                            div [ attr.``class`` ("text-4xl font-black leading-none " + accentText theme mode) ] [
+                                Doc.BindView (fun total ->
+                                    if total = 0 then
+                                        text "-"
+                                    else
+                                        text (string total)
+                                ) lastTotal.View
+                            ]
+
+                            div [ attr.``class`` "min-w-0" ] [
+                                div [ attr.``class`` ("text-base font-bold truncate " + accentText theme mode) ] [
+                                    lastRollTitleDoc mode
+                                ]
+
+                                div [ attr.``class`` ("text-xs mt-1 truncate " + mutedText theme) ] [
+                                    Doc.BindView (fun rolls ->
+                                        if rolls = "" then
+                                            text "Rolls: -"
+                                        else
+                                            text ("Rolls: " + rolls)
+                                    ) lastRolls.View
                                 ]
                             ]
                         ]
                     ]
 
-                    div [ attr.``class`` "space-y-6" ] [
+                    div [ attr.``class`` "hidden md:flex md:flex-col md:justify-center h-full" ] [
+                        h2 [ attr.``class`` ("text-2xl font-bold mb-4 " + titleText theme) ] [
+                            text "Last Roll"
+                        ]
 
-                        div [ attr.``class`` "h-[330px] bg-gray-900/90 border border-purple-500/20 p-6 rounded-3xl shadow-2xl overflow-hidden" ] [
-                            div [ attr.``class`` "flex items-start justify-between mb-4" ] [
-                                div [] [
-                                    h2 [ attr.``class`` "text-2xl font-bold" ] [
-                                        text "Roll Distribution"
-                                    ]
-
-                                    p [ attr.``class`` "text-sm text-gray-400 mt-1" ] [
-                                        text "Distribution of results for the selected dice."
-                                    ]
+                        div [ attr.``class`` "grid grid-cols-1 md:grid-cols-[190px_1fr] gap-7 items-center" ] [
+                            div [ attr.``class`` ("w-36 h-36 rounded-3xl border-2 " + modeStrongBorder mode + " flex items-center justify-center " + modeGlow mode) ] [
+                                h2 [ attr.``class`` "text-6xl font-black text-white leading-none drop-shadow-[0_0_16px_rgba(255,255,255,0.35)] -mt-2" ] [
+                                    Doc.BindView (fun total ->
+                                        if total = 0 then
+                                            text "-"
+                                        else
+                                            text (string total)
+                                    ) lastTotal.View
                                 ]
                             ]
 
-                            Doc.BindView (fun diceOption ->
-                                Doc.BindView (fun rolls ->
+                            div [] [
+                                div [ attr.``class`` ("text-2xl font-bold " + accentText theme mode) ] [
+                                    lastRollTitleDoc mode
+                                ]
 
-                                    match diceOption with
-                                    | None ->
-                                        div [ attr.``class`` "h-56 flex flex-col items-center justify-center text-center text-gray-400" ] [
-                                            div [ attr.``class`` "text-4xl mb-3 text-purple-300" ] [
-                                                text "▥"
-                                            ]
-
-                                            div [ attr.``class`` "text-lg text-white font-semibold" ] [
-                                                text "No data to display"
-                                            ]
-
-                                            div [ attr.``class`` "text-sm text-gray-400 mt-1" ] [
-                                                text "Roll some dice to see the distribution."
-                                            ]
-                                        ]
-
-                                    | Some dice ->
-                                        let filteredRolls = rollsForDice dice rolls
-
-                                        if List.isEmpty filteredRolls then
-                                            div [ attr.``class`` "h-56 flex flex-col items-center justify-center text-center text-gray-400" ] [
-                                                div [ attr.``class`` "text-lg text-white font-semibold" ] [
-                                                    text ("No " + diceTypeToText dice + " rolls yet")
-                                                ]
-
-                                                div [ attr.``class`` "text-sm text-gray-400 mt-1" ] [
-                                                    text "Roll this dice to create chart data."
-                                                ]
-                                            ]
+                                div [ attr.``class`` ("text-sm mt-2 " + mutedText theme) ] [
+                                    Doc.BindView (fun rolls ->
+                                        if rolls = "" then
+                                            text "Rolls: -"
                                         else
-                                            match dice with
-                                            | D100 ->
-                                                customD100DistributionChart filteredRolls
-                                            | _ ->
-                                                let sides = diceSides dice
-                                                let data = getChartData sides filteredRolls
-
-                                                customDistributionChart data
-
-                                ) allRolls.View
-                            ) selectedDice.View
-                        ]
-
-                        div [ attr.``class`` "h-[420px] bg-gray-900/90 border border-purple-500/20 p-6 rounded-3xl shadow-2xl overflow-hidden" ] [
-                            h2 [ attr.``class`` "text-2xl font-bold mb-1" ] [
-                                text "Recent Rolls"
+                                            text ("Rolls: " + rolls)
+                                    ) lastRolls.View
+                                ]
                             ]
-
-                            p [ attr.``class`` "text-sm text-gray-400 mb-5" ] [
-                                text "Your latest dice rolls"
-                            ]
-
-                            Doc.BindView (fun history ->
-                                if List.isEmpty history then
-                                    div [ attr.``class`` "h-[300px] flex flex-col items-center justify-center text-center text-gray-400" ] [
-                                        div [ attr.``class`` "w-14 h-14 rounded-2xl border border-purple-500/40 flex items-center justify-center text-2xl mb-4" ] [
-                                            text "◷"
-                                        ]
-
-                                        div [ attr.``class`` "text-lg text-white font-semibold" ] [
-                                            text "No recent rolls"
-                                        ]
-
-                                        div [ attr.``class`` "text-sm text-gray-400 mt-1" ] [
-                                            text "Your roll history will show up here."
-                                        ]
-                                    ]
-                                else
-                                    div [ attr.``class`` "space-y-2 h-[315px] overflow-hidden pr-1" ] [
-                                        yield!
-                                            recentFiveHistory history
-                                            |> List.map (fun roll ->
-                                                div [ attr.``class`` "flex items-center justify-between bg-gray-800/70 border border-purple-500/10 px-3 py-2 rounded-2xl hover:border-purple-500/30 transition" ] [
-                                                    div [ attr.``class`` "flex items-center gap-3 min-w-0" ] [
-                                                        img [
-                                                            attr.src (diceIconPath roll.Roll.Dice)
-                                                            attr.``class`` "w-9 h-9 object-contain"
-                                                        ] []
-
-                                                        div [ attr.``class`` "min-w-0" ] [
-                                                            div [ attr.``class`` "text-gray-200 text-xs font-bold" ] [
-                                                                text (string roll.Roll.Count + " x " + diceTypeToText roll.Roll.Dice)
-                                                            ]
-
-                                                            div [ attr.``class`` "text-gray-400 text-[11px] mt-0.5 truncate max-w-[250px]" ] [
-                                                                text (roll.Values |> List.map string |> String.concat ", ")
-                                                            ]
-                                                        ]
-                                                    ]
-
-                                                    span [ attr.``class`` "text-xl font-bold text-purple-300 shrink-0 pl-3" ] [
-                                                        text (string roll.Total)
-                                                    ]
-                                                ]
-                                            )
-                                    ]
-                            ) rollHistory.View
                         ]
                     ]
                 ]
             ]
+
+        let children =
+            firstPart @ optionalCurrentPlayer @ lastPart
+
+        div [ attr.``class`` ("h-[774px] border " + panelBg theme + " " + modeBorder mode + " p-6 rounded-3xl shadow-2xl overflow-hidden flex flex-col") ] children
+
+    let statsPanels theme mode =
+        match mode with
+        | SingleMode ->
+            div [ attr.``class`` "space-y-6" ] [
+                distributionPanel theme mode
+                recentRollsPanel theme mode
+            ]
+        | MultiMode ->
+            div [ attr.``class`` "space-y-6" ] [
+                distributionPanel theme mode
+
+                div [ attr.``class`` "grid grid-cols-1 lg:grid-cols-[0.8fr_1.2fr] gap-6" ] [
+                    playersPanel theme mode
+                    recentRollsPanel theme mode
+                ]
+            ]
+
+    let mobileStatsToggle theme mode =
+        div [ attr.``class`` "xl:hidden mt-6" ] [
+            button [
+                attr.``class`` ("w-full py-4 rounded-2xl border " + modeStrongBorder mode + " " + accentText theme mode + " font-bold")
+                on.click (fun _ _ -> showMobileStats.Set (not showMobileStats.Value))
+            ] [
+                Doc.BindView (fun visible ->
+                    if visible then
+                        text "HIDE STATISTICS ↑"
+                    else
+                        text "SHOW STATISTICS ↓"
+                ) showMobileStats.View
+            ]
+
+            Doc.BindView (fun visible ->
+                if visible then
+                    div [ attr.``class`` "mt-6" ] [
+                        statsPanels theme mode
+                    ]
+                else
+                    Doc.Empty
+            ) showMobileStats.View
         ]
+
+    let pageLayout theme mode =
+        div [ attr.``class`` "grid grid-cols-1 xl:grid-cols-2 gap-6 items-start" ] [
+            div [ attr.``class`` "space-y-6" ] [
+                rollDicePanel theme mode
+                mobileStatsToggle theme mode
+            ]
+
+            div [ attr.``class`` "hidden xl:block" ] [
+                statsPanels theme mode
+            ]
+        ]
+
+    let page theme mode =
+        div [ attr.``class`` ("min-h-screen " + appBg theme) ] [
+            mobileNavbar theme mode
+
+            div [ attr.``class`` "flex" ] [
+                sidebar theme mode
+
+                div [ attr.id "main-content"; attr.``class`` "flex-1" ] [
+                    div [ attr.``class`` "max-w-[1420px] mx-auto p-4 md:p-6 xl:p-8" ] [
+                        div [ attr.``class`` "mb-7 flex flex-col lg:flex-row lg:items-center lg:justify-between gap-5" ] [
+                            div [] [
+                                h1 [ attr.``class`` ("text-3xl md:text-4xl font-bold uppercase tracking-wide " + accentText theme mode) ] [
+                                    text (modeTitle mode)
+                                ]
+
+                                p [ attr.``class`` ("mt-2 " + mutedText theme) ] [
+                                    text "Roll your dice and track your adventure."
+                                ]
+                            ]
+
+                            div [ attr.``class`` "flex items-center gap-3" ] [
+                                div [ attr.``class`` ("flex border rounded-2xl p-1 shadow-lg " + panelBg theme + " " + modeBorder mode) ] [
+                                    modeButton SingleMode mode
+                                    modeButton MultiMode mode
+                                ]
+
+                                button [
+                                    attr.``class`` ("w-11 h-11 rounded-xl border text-xl " + panelBg theme + " " + modeBorder mode + " " + titleText theme)
+                                    on.click (fun _ _ -> toggleTheme ())
+                                ] [
+                                    text (
+                                        match theme with
+                                        | DarkTheme -> "☼"
+                                        | LightTheme -> "☾"
+                                    )
+                                ]
+                            ]
+                        ]
+
+                        pageLayout theme mode
+                    ]
+                ]
+            ]
+        ]
+
+    [<SPAEntryPoint>]
+    let Main () =
+        Doc.BindView (fun mode ->
+            Doc.BindView (fun theme ->
+                page theme mode
+            ) selectedTheme.View
+        ) selectedMode.View
         |> Doc.RunById "main"
