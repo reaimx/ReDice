@@ -20,6 +20,12 @@ module Client =
         | DarkTheme
         | LightTheme
 
+    type AppPage =
+        | HomePage
+        | HistoryPage
+        | ImportExportPage
+        | AboutPage
+
     type DiceExpression = {
         Count: int
         Dice: DiceType
@@ -90,6 +96,8 @@ module Client =
 
     let selectedMode = Var.Create SingleMode
     let selectedTheme = Var.Create DarkTheme
+    let selectedPage = Var.Create HomePage
+    let selectedHistoryDice = Var.Create<DiceType option> None
     let showMobileStats = Var.Create false
 
     let selectedDice = Var.Create<DiceType option> None
@@ -366,6 +374,210 @@ module Client =
             | None ->
                 currentPlayerId.Set currentPlayers.Head.Id
 
+    let storageKey =
+        "redice-save-v1"
+
+    let appModeToText mode =
+        match mode with
+        | SingleMode -> "single"
+        | MultiMode -> "multi"
+
+    let textToAppMode text =
+        match text with
+        | "single" -> SingleMode
+        | "multi" -> MultiMode
+        | _ -> SingleMode
+
+    let cleanSaveText (value: string) =
+        value
+            .Replace("|", " ")
+            .Replace(";", " ")
+            .Replace("~", " ")
+            .Replace(",", " ")
+
+    let serializePlayer player =
+        string player.Id + "," + cleanSaveText player.Name
+
+    let deserializePlayer (textValue: string) =
+        let parts = textValue.Split([|','|])
+
+        if parts.Length = 2 then
+            Some {
+                Id = int parts.[0]
+                Name = parts.[1]
+            }
+        else
+            None
+
+    let serializeHistoryEntry entry =
+        let valuesText =
+            entry.Values
+            |> List.map string
+            |> String.concat ","
+
+        String.concat "|" [
+            appModeToText entry.Mode
+            string entry.PlayerId
+            cleanSaveText entry.PlayerName
+            string entry.Roll.Count
+            diceTypeToText entry.Roll.Dice
+            valuesText
+            string entry.Total
+        ]
+
+    let deserializeHistoryEntry (textValue: string) =
+        let parts = textValue.Split([|'|'|])
+
+        if parts.Length = 7 then
+            match diceTextToTypeOption parts.[4] with
+            | Some dice ->
+                let values =
+                    if parts.[5] = "" then
+                        []
+                    else
+                        parts.[5].Split([|','|])
+                        |> Array.toList
+                        |> List.map int
+
+                Some {
+                    Mode = textToAppMode parts.[0]
+                    PlayerId = int parts.[1]
+                    PlayerName = parts.[2]
+                    Roll = {
+                        Count = int parts.[3]
+                        Dice = dice
+                    }
+                    Values = values
+                    Total = int parts.[6]
+                }
+
+            | None ->
+                None
+        else
+            None
+
+    let saveGame () =
+        let playersText =
+            players.Value
+            |> List.map serializePlayer
+            |> String.concat ";"
+
+        let historyText =
+            rollHistory.Value
+            |> List.map serializeHistoryEntry
+            |> String.concat "~"
+
+        let saveText =
+            String.concat "\n" [
+                "current|" + string currentPlayerId.Value
+                "next|" + string nextPlayerId.Value
+                "players|" + playersText
+                "history|" + historyText
+            ]
+
+        JS.Window.LocalStorage.SetItem(storageKey, saveText)
+
+    let loadGame () =
+        let savedText =
+            JS.Window.LocalStorage.GetItem(storageKey)
+
+        if isNull savedText then
+            ()
+        else
+            let lines =
+                savedText.Split([|'\n'|])
+                |> Array.toList
+
+            let getLine (prefix: string) =
+                lines
+                |> List.tryFind (fun (line: string) -> line.StartsWith(prefix))
+                |> function
+                    | Some (line: string) -> line.Substring(prefix.Length)
+                    | None -> ""
+
+            let loadedCurrentId =
+                let value = getLine "current|"
+                if value = "" then 1 else int value
+
+            let loadedNextId =
+                let value = getLine "next|"
+                if value = "" then 2 else int value
+
+            let loadedPlayers =
+                let value = getLine "players|"
+
+                if value = "" then
+                    [ { Id = 1; Name = "Player 1" } ]
+                else
+                    value.Split([|';'|])
+                    |> Array.toList
+                    |> List.choose deserializePlayer
+
+            let loadedHistory =
+                let value = getLine "history|"
+
+                if value = "" then
+                    []
+                else
+                    value.Split([|'~'|])
+                    |> Array.toList
+                    |> List.choose deserializeHistoryEntry
+
+            let loadedRolls =
+                loadedHistory
+                |> List.collect (fun history ->
+                    history.Values
+                    |> List.map (fun value ->
+                        {
+                            Dice = history.Roll.Dice
+                            Value = value
+                            Mode = history.Mode
+                        }
+                    )
+                )
+
+            players.Set loadedPlayers
+            currentPlayerId.Set loadedCurrentId
+            nextPlayerId.Set loadedNextId
+
+            rollHistory.Set loadedHistory
+            allRolls.Set loadedRolls
+
+            selectedDice.Set None
+            selectedCount.Set None
+
+            match loadedHistory |> List.rev with
+            | last :: _ ->
+                lastTotal.Set last.Total
+                lastRolls.Set (last.Values |> List.map string |> String.concat ", ")
+            | [] ->
+                lastTotal.Set 0
+                lastRolls.Set ""
+
+            showMobileStats.Set false
+
+    let newGame () =
+        selectedMode.Set SingleMode
+        selectedPage.Set HomePage
+        selectedHistoryDice.Set None
+
+        selectedDice.Set None
+        selectedCount.Set None
+
+        lastTotal.Set 0
+        lastRolls.Set ""
+
+        allRolls.Set []
+        rollHistory.Set []
+
+        players.Set [
+            { Id = 1; Name = "Player 1" }
+        ]
+
+        currentPlayerId.Set 1
+        nextPlayerId.Set 2
+        JS.Window.LocalStorage.RemoveItem(storageKey)
+
     let chartItem label count =
         { Label = label; Count = count; IsGap = false }
 
@@ -460,6 +672,7 @@ module Client =
 
                 selectedDice.Set None
                 selectedCount.Set None
+                selectedHistoryDice.Set None
 
                 lastTotal.Set 0
                 lastRolls.Set ""
@@ -473,7 +686,16 @@ module Client =
             )
         ]
 
-    let sideMenuItem theme mode label isActive =
+    let pageToText page =
+        match page with
+        | HomePage -> "Home"
+        | HistoryPage -> "History"
+        | ImportExportPage -> "Import / Export"
+        | AboutPage -> "About"
+
+    let sideMenuItem theme mode page currentPage =
+        let isActive = page = currentPage
+
         let activeClass =
             if isActive then
                 modeButtonColor mode + " text-white font-semibold"
@@ -482,11 +704,29 @@ module Client =
                 | DarkTheme -> "text-gray-400 hover:text-white"
                 | LightTheme -> "text-slate-600 hover:text-slate-900"
 
-        div [ attr.``class`` ("px-4 py-3 rounded-xl text-sm " + activeClass) ] [
-            text label
+        button [
+            attr.``class`` ("w-full text-left px-4 py-3 rounded-xl text-sm " + activeClass)
+            on.click (fun _ _ -> selectedPage.Set page)
+        ] [
+            text (pageToText page)
         ]
 
-    let sidebar theme mode =
+    let newGameButton theme mode =
+        button [
+            attr.``class`` (
+                "w-full mt-6 px-4 py-3 rounded-2xl border text-sm font-semibold transition text-left " +
+                match mode with
+                | SingleMode ->
+                    "border-purple-500/30 text-purple-300 hover:bg-purple-500/10"
+                | MultiMode ->
+                    "border-orange-500/30 text-orange-300 hover:bg-orange-500/10"
+            )
+            on.click (fun _ _ -> newGame ())
+        ] [
+            text "↻ New Game"
+        ]
+
+    let sidebar theme mode currentPage =
         aside [ attr.``class`` ("hidden md:flex w-64 border-r p-6 flex-col min-h-screen " + sidebarBg theme) ] [
             div [ attr.``class`` "flex items-center gap-3 mb-10" ] [
                 img [
@@ -499,15 +739,49 @@ module Client =
                 ]
             ]
 
-            nav [ attr.``class`` "space-y-3" ] [
-                sideMenuItem theme mode "Home" true
-                sideMenuItem theme mode "History" false
-                sideMenuItem theme mode "Import / Export" false
-                sideMenuItem theme mode "About" false
+            nav [ attr.``class`` "flex flex-col h-full" ] [
+
+                div [ attr.``class`` "space-y-3" ] [
+                    newGameButton theme mode
+
+                    div [ attr.``class`` ("flex border rounded-2xl p-1 shadow-lg " + panelBg theme + " " + modeBorder mode) ] [
+                        button [
+                            attr.``class`` (
+                                "flex-1 px-4 py-3 rounded-xl text-white font-semibold transition " +
+                                modeButtonColor mode
+                            )
+                            on.click (fun _ _ -> saveGame ())
+                        ] [
+                            text "Save"
+                        ]
+
+                        button [
+                            attr.``class`` (
+                                "flex-1 px-4 py-3 rounded-xl font-semibold transition " +
+                                match theme with
+                                | DarkTheme ->
+                                    "text-gray-400 hover:text-white"
+                                | LightTheme ->
+                                    "text-slate-600 hover:text-slate-900"
+                            )
+                            on.click (fun _ _ -> loadGame ())
+                        ] [
+                            text "Load"
+                        ]
+                    ]
+
+                    sideMenuItem theme mode ImportExportPage currentPage
+                ]
+
+                div [ attr.``class`` "mt-auto space-y-3 pt-10" ] [
+                    sideMenuItem theme mode HomePage currentPage
+                    sideMenuItem theme mode HistoryPage currentPage
+                    sideMenuItem theme mode AboutPage currentPage
+                ]
             ]
         ]
 
-    let mobileNavbar theme mode =
+    let mobileNavbar theme mode currentPage =
         div [ attr.``class`` ("md:hidden border-b p-4 " + sidebarBg theme) ] [
             div [ attr.``class`` "flex items-center justify-between" ] [
                 div [ attr.``class`` "flex items-center gap-3" ] [
@@ -526,11 +800,47 @@ module Client =
                         text "☰"
                     ]
 
-                    div [ attr.``class`` ("absolute right-0 mt-3 w-52 rounded-2xl border p-3 shadow-xl z-50 " + sidebarBg theme) ] [
-                        sideMenuItem theme mode "Home" true
-                        sideMenuItem theme mode "History" false
-                        sideMenuItem theme mode "Import / Export" false
-                        sideMenuItem theme mode "About" false
+                    div [ attr.``class`` ("absolute right-0 mt-3 w-56 rounded-2xl border p-3 shadow-xl z-50 " + sidebarBg theme) ] [
+
+                        div [ attr.``class`` "space-y-3" ] [
+
+                            newGameButton theme mode
+
+                            div [ attr.``class`` ("flex border rounded-2xl p-1 shadow-lg " + panelBg theme + " " + modeBorder mode) ] [
+
+                                button [
+                                    attr.``class`` (
+                                        "flex-1 px-3 py-2 rounded-xl text-white font-semibold transition text-sm " +
+                                        modeButtonColor mode
+                                    )
+                                    on.click (fun _ _ -> saveGame ())
+                                ] [
+                                    text "Save"
+                                ]
+
+                                button [
+                                    attr.``class`` (
+                                        "flex-1 px-3 py-2 rounded-xl font-semibold transition text-sm " +
+                                        match theme with
+                                        | DarkTheme ->
+                                            "text-gray-400 hover:text-white"
+                                        | LightTheme ->
+                                            "text-slate-600 hover:text-slate-900"
+                                    )
+                                    on.click (fun _ _ -> loadGame ())
+                                ] [
+                                    text "Load"
+                                ]
+                            ]
+
+                            sideMenuItem theme mode ImportExportPage currentPage
+
+                            div [ attr.``class`` "border-t border-white/10 pt-3 mt-3 space-y-3" ] [
+                                sideMenuItem theme mode HomePage currentPage
+                                sideMenuItem theme mode HistoryPage currentPage
+                                sideMenuItem theme mode AboutPage currentPage
+                            ]
+                        ]
                     ]
                 ]
             ]
@@ -724,6 +1034,276 @@ module Client =
             ]
         ]
 
+    let historyRollDoc theme mode roll =
+        let titleText =
+            match mode with
+            | SingleMode ->
+                string roll.Roll.Count + " x " + diceTypeToText roll.Roll.Dice
+            | MultiMode ->
+                roll.PlayerName
+
+        let detailText =
+            match mode with
+            | SingleMode ->
+                roll.Values |> List.map string |> String.concat ", "
+            | MultiMode ->
+                string roll.Roll.Count + " x " + diceTypeToText roll.Roll.Dice + " · " + (roll.Values |> List.map string |> String.concat ", ")
+
+        div [ attr.``class`` ("flex items-center justify-between border px-3 py-3 rounded-2xl transition " + innerBoxBg theme + " " + cardHoverBorder theme) ] [
+            div [ attr.``class`` "flex items-center gap-3 min-w-0" ] [
+                img [
+                    attr.src (diceIconPathForMode mode roll.Roll.Dice)
+                    attr.``class`` "w-10 h-10 object-contain"
+                ] []
+
+                div [ attr.``class`` "min-w-0" ] [
+                    div [ attr.``class`` ("flex items-center gap-2 text-sm font-bold " + accentText theme mode) ] [
+                        if mode = MultiMode then
+                            div [ attr.``class`` ("w-2.5 h-2.5 rounded-full " + playerDotColor roll.PlayerId) ] []
+
+                        text titleText
+                    ]
+
+                    div [ attr.``class`` ("text-xs mt-1 truncate max-w-[340px] " + mutedText theme) ] [
+                        text detailText
+                    ]
+                ]
+            ]
+
+            span [ attr.``class`` ("text-2xl font-bold shrink-0 pl-3 " + accentText theme mode) ] [
+                text (string roll.Total)
+            ]
+        ]
+
+    let historyListPanel theme mode =
+        div [ attr.``class`` ("h-[774px] border " + panelBg theme + " " + modeBorder mode + " p-6 rounded-3xl shadow-2xl overflow-hidden") ] [
+            h2 [ attr.``class`` ("text-2xl font-bold mb-1 " + titleText theme) ] [
+                text "Roll History"
+            ]
+
+            p [ attr.``class`` ("text-sm mb-5 " + mutedText theme) ] [
+                text "All saved rolls for the selected mode."
+            ]
+
+            Doc.BindView (fun history ->
+                let filtered =
+                    history
+                    |> List.filter (fun roll -> roll.Mode = mode)
+                    |> List.rev
+
+                if List.isEmpty filtered then
+                    div [ attr.``class`` ("h-[650px] flex flex-col items-center justify-center text-center " + mutedText theme) ] [
+                        div [ attr.``class`` ("text-lg font-semibold " + titleText theme) ] [
+                            text "No history yet"
+                        ]
+
+                        div [ attr.``class`` ("text-sm mt-1 " + mutedText theme) ] [
+                            text "Roll some dice and your full history will appear here."
+                        ]
+                    ]
+                else
+                    let items =
+                        filtered
+                        |> List.map (fun roll -> historyRollDoc theme mode roll)
+
+                    div [
+                        attr.``class`` (
+                            "space-y-2 h-[650px] overflow-y-auto pr-2 " +
+                            (match mode with
+                            | SingleMode -> "redice-scroll-purple"
+                            | MultiMode -> "redice-scroll-orange")
+                        )
+                    ] items
+            ) rollHistory.View
+        ]
+
+    let historyDistributionPanel theme mode =
+        div [ attr.``class`` ("h-[330px] border " + panelBg theme + " " + modeBorder mode + " p-6 rounded-3xl shadow-2xl overflow-hidden") ] [
+            div [ attr.``class`` "flex items-start justify-between gap-4 mb-4" ] [
+                div [] [
+                    h2 [ attr.``class`` ("text-2xl font-bold " + titleText theme) ] [
+                        text "History Distribution"
+                    ]
+
+                    p [ attr.``class`` ("text-sm mt-1 " + mutedText theme) ] [
+                        text "Choose a dice type to inspect its full history."
+                    ]
+                ]
+
+                select [
+                    attr.``class`` ("w-32 h-11 px-3 rounded-xl outline-none " + inputBg theme)
+                    on.change (fun el _ ->
+                        selectedHistoryDice.Set (diceTextToTypeOption el?value)
+                    )
+                ] [
+                    option [
+                        attr.value ""
+                        attr.selected "selected"
+                    ] [
+                        text "Select dice"
+                    ]
+
+                    for dice in diceTypes do
+                        diceTypeOption dice
+                ]
+            ]
+
+            Doc.BindView (fun diceOption ->
+                Doc.BindView (fun rolls ->
+                    match diceOption with
+                    | None ->
+                        div [ attr.``class`` ("h-52 flex flex-col items-center justify-center text-center " + mutedText theme) ] [
+                            div [ attr.``class`` ("text-lg font-semibold " + titleText theme) ] [
+                                text "Select a dice type"
+                            ]
+
+                            div [ attr.``class`` ("text-sm mt-1 " + mutedText theme) ] [
+                                text "The chart will use only rolls from this mode."
+                            ]
+                        ]
+
+                    | Some dice ->
+                        let filteredRolls =
+                            rollsForDice mode dice rolls
+
+                        if List.isEmpty filteredRolls then
+                            div [ attr.``class`` ("h-52 flex flex-col items-center justify-center text-center " + mutedText theme) ] [
+                                div [ attr.``class`` ("text-lg font-semibold " + titleText theme) ] [
+                                    text ("No " + diceTypeToText dice + " history yet")
+                                ]
+
+                                div [ attr.``class`` ("text-sm mt-1 " + mutedText theme) ] [
+                                    text "Roll this dice first to create history data."
+                                ]
+                            ]
+                        else
+                            match dice with
+                            | D100 ->
+                                customD100DistributionChart mode filteredRolls
+                            | _ ->
+                                let sides = diceSides dice
+                                let data = getChartData sides filteredRolls
+                                customDistributionChart mode data
+                ) allRolls.View
+            ) selectedHistoryDice.View
+        ]
+
+    let mostUsedDiceText entries =
+        let diceCounts =
+            diceTypes
+            |> List.map (fun dice ->
+                let count =
+                    entries
+                    |> List.filter (fun entry -> entry.Roll.Dice = dice)
+                    |> List.length
+
+                dice, count
+            )
+
+        let best =
+            diceCounts
+            |> List.sortByDescending snd
+            |> List.tryHead
+
+        match best with
+        | Some (dice, count) when count > 0 ->
+            diceTypeToText dice
+        | _ ->
+            "-"
+
+    let historySummaryPanel theme mode =
+        div [ attr.``class`` ("h-[420px] border " + panelBg theme + " " + modeBorder mode + " p-6 rounded-3xl shadow-2xl overflow-hidden") ] [
+            h2 [ attr.``class`` ("text-2xl font-bold mb-1 " + titleText theme) ] [
+                text "History Summary"
+            ]
+
+            p [ attr.``class`` ("text-sm mb-5 " + mutedText theme) ] [
+                text "Overview for the selected mode."
+            ]
+
+            Doc.BindView (fun history ->
+                let filtered =
+                    history
+                    |> List.filter (fun roll -> roll.Mode = mode)
+
+                let totalRollActions =
+                    filtered |> List.length
+
+                let totalDiceThrown =
+                    filtered
+                    |> List.sumBy (fun roll -> List.length roll.Values)
+
+                let highestTotal =
+                    filtered
+                    |> List.map (fun roll -> roll.Total)
+                    |> function
+                        | [] -> 0
+                        | values -> List.max values
+
+                let mostUsed =
+                    mostUsedDiceText filtered
+
+                div [ attr.``class`` "grid grid-cols-1 sm:grid-cols-2 gap-4" ] [
+                    div [ attr.``class`` ("border rounded-2xl p-4 " + innerBoxBg theme) ] [
+                        p [ attr.``class`` ("text-xs uppercase tracking-wide " + mutedText theme) ] [
+                            text "Roll actions"
+                        ]
+
+                        div [ attr.``class`` ("text-3xl font-black mt-2 " + accentText theme mode) ] [
+                            text (string totalRollActions)
+                        ]
+                    ]
+
+                    div [ attr.``class`` ("border rounded-2xl p-4 " + innerBoxBg theme) ] [
+                        p [ attr.``class`` ("text-xs uppercase tracking-wide " + mutedText theme) ] [
+                            text "Dice thrown"
+                        ]
+
+                        div [ attr.``class`` ("text-3xl font-black mt-2 " + accentText theme mode) ] [
+                            text (string totalDiceThrown)
+                        ]
+                    ]
+
+                    div [ attr.``class`` ("border rounded-2xl p-4 " + innerBoxBg theme) ] [
+                        p [ attr.``class`` ("text-xs uppercase tracking-wide " + mutedText theme) ] [
+                            text "Most used dice"
+                        ]
+
+                        div [ attr.``class`` ("text-3xl font-black mt-2 " + accentText theme mode) ] [
+                            text mostUsed
+                        ]
+                    ]
+
+                    div [ attr.``class`` ("border rounded-2xl p-4 " + innerBoxBg theme) ] [
+                        p [ attr.``class`` ("text-xs uppercase tracking-wide " + mutedText theme) ] [
+                            text "Highest total"
+                        ]
+
+                        div [ attr.``class`` ("text-3xl font-black mt-2 " + accentText theme mode) ] [
+                            if highestTotal = 0 then
+                                text "-"
+                            else
+                                text (string highestTotal)
+                        ]
+                    ]
+                ]
+            ) rollHistory.View
+        ]
+
+    let historyPageLayout theme mode =
+        div [ attr.``class`` "grid grid-cols-1 xl:grid-cols-2 gap-6 items-start" ] [
+            div [ attr.``class`` "space-y-6" ] [
+                historyListPanel theme mode
+            ]
+
+            div [ attr.``class`` "space-y-6" ] [
+                historyDistributionPanel theme mode
+                historySummaryPanel theme mode
+            ]
+        ]
+
+       
+
     let playerRow theme mode currentId player =
         let activeClass =
             if player.Id = currentId then
@@ -774,10 +1354,12 @@ module Client =
                 ]
 
                 button [
-                    attr.``class`` ("w-9 h-9 rounded-xl border " + modeStrongBorder mode + " " + accentText theme mode + " text-xl font-bold hover:bg-white/5")
+                    attr.``class`` ("w-9 h-9 rounded-xl border flex items-center justify-center " + modeStrongBorder mode + " " + accentText theme mode + " text-xl font-bold hover:bg-white/5")
                     on.click (fun _ _ -> addPlayer ())
                 ] [
-                    text "+"
+                    span [ attr.style "transform: translateY(-2px);" ] [
+                        text "+"
+                    ]
                 ]
             ]
 
@@ -1109,7 +1691,7 @@ module Client =
 
                         div [ attr.``class`` "grid grid-cols-1 md:grid-cols-[190px_1fr] gap-7 items-center" ] [
                             div [ attr.``class`` ("w-36 h-36 rounded-3xl border-2 " + modeStrongBorder mode + " flex items-center justify-center " + modeGlow mode) ] [
-                                h2 [ attr.``class`` "text-6xl font-black text-white leading-none drop-shadow-[0_0_16px_rgba(255,255,255,0.35)] -mt-2" ] [
+                                h2 [ attr.``class`` ("text-6xl font-black leading-none -mt-2 " + accentText theme mode) ] [
                                     Doc.BindView (fun total ->
                                         if total = 0 then
                                             text "-"
@@ -1196,12 +1778,12 @@ module Client =
             ]
         ]
 
-    let page theme mode =
+    let page theme mode currentPage =
         div [ attr.``class`` ("min-h-screen " + appBg theme) ] [
-            mobileNavbar theme mode
+            mobileNavbar theme mode currentPage
 
             div [ attr.``class`` "flex" ] [
-                sidebar theme mode
+                sidebar theme mode currentPage
 
                 div [ attr.id "main-content"; attr.``class`` "flex-1" ] [
                     div [ attr.``class`` "max-w-[1420px] mx-auto p-4 md:p-6 xl:p-8" ] [
@@ -1223,19 +1805,32 @@ module Client =
                                 ]
 
                                 button [
-                                    attr.``class`` ("w-11 h-11 rounded-xl border text-xl " + panelBg theme + " " + modeBorder mode + " " + titleText theme)
+                                    attr.``class`` ("w-11 h-11 rounded-xl border flex items-center justify-center text-xl " + panelBg theme + " " + modeBorder mode + " " + titleText theme)
                                     on.click (fun _ _ -> toggleTheme ())
                                 ] [
-                                    text (
-                                        match theme with
-                                        | DarkTheme -> "☼"
-                                        | LightTheme -> "☾"
-                                    )
+                                    span [ attr.style "transform: translateY(-1px);" ] [
+                                        text (
+                                            match theme with
+                                            | DarkTheme -> "☼"
+                                            | LightTheme -> "☾"
+                                        )
+                                    ]
                                 ]
                             ]
                         ]
 
-                        pageLayout theme mode
+                        match currentPage with
+                        | HomePage ->
+                            pageLayout theme mode
+
+                        | HistoryPage ->
+                            historyPageLayout theme mode
+
+                        | ImportExportPage ->
+                            pageLayout theme mode
+
+                        | AboutPage ->
+                            pageLayout theme mode
                     ]
                 ]
             ]
@@ -1245,7 +1840,9 @@ module Client =
     let Main () =
         Doc.BindView (fun mode ->
             Doc.BindView (fun theme ->
-                page theme mode
+                Doc.BindView (fun currentPage ->
+                    page theme mode currentPage
+                ) selectedPage.View
             ) selectedTheme.View
         ) selectedMode.View
         |> Doc.RunById "main"
