@@ -119,13 +119,13 @@ module Client =
 
     let diceIconPathForMode mode dice =
         match mode with
-        | SingleMode -> "/icons/" + diceTypeToText dice + ".svg"
-        | MultiMode -> "/icons/" + diceTypeToText dice + "-orange.svg"
+        | SingleMode -> "./icons/" + diceTypeToText dice + ".svg"
+        | MultiMode -> "./icons/" + diceTypeToText dice + "-orange.svg"
 
     let emptyDiceIconPathForMode mode =
         match mode with
-        | SingleMode -> "/icons/dice-empty.svg"
-        | MultiMode -> "/icons/dice-empty-orange.svg"
+        | SingleMode -> "./icons/dice-empty.svg"
+        | MultiMode -> "./icons/dice-empty-orange.svg"
 
     let selectedDiceIconPath mode diceOption =
         match diceOption with
