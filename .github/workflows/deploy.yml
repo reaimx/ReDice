@@ -41,6 +41,10 @@ jobs:
           mkdir -p public
           cp -r wwwroot/* public/
 
+          if [ -d "wwwroot/icons" ]; then
+            cp -r wwwroot/icons public/icons
+          fi
+
           if [ -d "Scripts" ]; then
             cp -r Scripts public/Scripts
           fi
