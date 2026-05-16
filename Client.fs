@@ -117,15 +117,18 @@ module Client =
     let currentPlayerId = Var.Create 1
     let nextPlayerId = Var.Create 2
 
+    let iconBasePath =
+        "./icons/"
+
     let diceIconPathForMode mode dice =
         match mode with
-        | SingleMode -> "./icons/" + diceTypeToText dice + ".svg"
-        | MultiMode -> "./icons/" + diceTypeToText dice + "-orange.svg"
+        | SingleMode -> iconBasePath + diceTypeToText dice + ".svg"
+        | MultiMode -> iconBasePath + diceTypeToText dice + "-orange.svg"
 
     let emptyDiceIconPathForMode mode =
         match mode with
-        | SingleMode -> "./icons/dice-empty.svg"
-        | MultiMode -> "./icons/dice-empty-orange.svg"
+        | SingleMode -> iconBasePath + "dice-empty.svg"
+        | MultiMode -> iconBasePath + "dice-empty-orange.svg"
 
     let selectedDiceIconPath mode diceOption =
         match diceOption with

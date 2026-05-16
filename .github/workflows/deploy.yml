@@ -39,19 +39,26 @@ jobs:
       - name: Prepare Pages artifact
         run: |
           mkdir -p public
-          cp -r wwwroot/* public/
+
+          cp -r publish/wwwroot/* public/
 
           if [ -d "wwwroot/icons" ]; then
-            cp -r wwwroot/icons public/icons
+            mkdir -p public/icons
+            cp -r wwwroot/icons/* public/icons/
+          fi
+
+          if [ -d "wwwroot/Scripts" ]; then
+            mkdir -p public/Scripts
+            cp -r wwwroot/Scripts/* public/Scripts/
           fi
 
           if [ -d "Scripts" ]; then
-            cp -r Scripts public/Scripts
+            mkdir -p public/Scripts
+            cp -r Scripts/* public/Scripts/
           fi
 
-          if [ -d "bin/Release/net10.0/wwwroot" ]; then
-            cp -r bin/Release/net10.0/wwwroot/* public/
-          fi
+          echo "=== PUBLIC FILES ==="
+          find public -maxdepth 3 -type f
 
       - name: Setup Pages
         uses: actions/configure-pages@v5
