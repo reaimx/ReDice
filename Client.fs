@@ -374,6 +374,22 @@ module Client =
             | None ->
                 currentPlayerId.Set currentPlayers.Head.Id
 
+    let removePlayer playerId =
+        let remaining =
+            players.Value
+            |> List.filter (fun player -> player.Id <> playerId)
+
+        let safePlayers =
+            if List.isEmpty remaining then
+                [ { Id = 1; Name = "Player 1" } ]
+            else
+                remaining
+
+        players.Set safePlayers
+
+        if currentPlayerId.Value = playerId then
+            currentPlayerId.Set safePlayers.Head.Id
+
     let storageKey =
         "redice-save-v1"
 
@@ -456,7 +472,7 @@ module Client =
         else
             None
 
-    let saveGame () =
+    let buildSaveText () =
         let playersText =
             players.Value
             |> List.map serializePlayer
@@ -467,15 +483,89 @@ module Client =
             |> List.map serializeHistoryEntry
             |> String.concat "~"
 
-        let saveText =
-            String.concat "\n" [
-                "current|" + string currentPlayerId.Value
-                "next|" + string nextPlayerId.Value
-                "players|" + playersText
-                "history|" + historyText
-            ]
+        String.concat "\n" [
+            "current|" + string currentPlayerId.Value
+            "next|" + string nextPlayerId.Value
+            "players|" + playersText
+            "history|" + historyText
+        ]
 
-        JS.Window.LocalStorage.SetItem(storageKey, saveText)
+    let saveGame () =
+        JS.Window.LocalStorage.SetItem(storageKey, buildSaveText ())
+
+    let loadSaveText (savedText: string) =
+        let lines =
+            savedText.Split([|'\n'|])
+            |> Array.toList
+
+        let getLine (prefix: string) =
+            lines
+            |> List.tryFind (fun (line: string) -> line.StartsWith(prefix))
+            |> function
+                | Some (line: string) -> line.Substring(prefix.Length)
+                | None -> ""
+
+        let loadedCurrentId =
+            let value = getLine "current|"
+            if value = "" then 1 else int value
+
+        let loadedNextId =
+            let value = getLine "next|"
+            if value = "" then 2 else int value
+
+        let loadedPlayers =
+            let value = getLine "players|"
+
+            if value = "" then
+                [ { Id = 1; Name = "Player 1" } ]
+            else
+                value.Split([|';'|])
+                |> Array.toList
+                |> List.choose deserializePlayer
+
+        let loadedHistory =
+            let value = getLine "history|"
+
+            if value = "" then
+                []
+            else
+                value.Split([|'~'|])
+                |> Array.toList
+                |> List.choose deserializeHistoryEntry
+
+        let loadedRolls =
+            loadedHistory
+            |> List.collect (fun history ->
+                history.Values
+                |> List.map (fun value ->
+                    {
+                        Dice = history.Roll.Dice
+                        Value = value
+                        Mode = history.Mode
+                    }
+                )
+            )
+
+        players.Set loadedPlayers
+        currentPlayerId.Set loadedCurrentId
+        nextPlayerId.Set loadedNextId
+
+        rollHistory.Set loadedHistory
+        allRolls.Set loadedRolls
+
+        selectedDice.Set None
+        selectedCount.Set None
+        selectedHistoryDice.Set None
+
+        match loadedHistory |> List.rev with
+        | last :: _ ->
+            lastTotal.Set last.Total
+            lastRolls.Set (last.Values |> List.map string |> String.concat ", ")
+        | [] ->
+            lastTotal.Set 0
+            lastRolls.Set ""
+
+        showMobileStats.Set false
 
     let loadGame () =
         let savedText =
@@ -484,77 +574,46 @@ module Client =
         if isNull savedText then
             ()
         else
-            let lines =
-                savedText.Split([|'\n'|])
-                |> Array.toList
+            loadSaveText savedText
 
-            let getLine (prefix: string) =
-                lines
-                |> List.tryFind (fun (line: string) -> line.StartsWith(prefix))
-                |> function
-                    | Some (line: string) -> line.Substring(prefix.Length)
-                    | None -> ""
+    let exportSaveFile () =
+        let saveText =
+            buildSaveText ()
 
-            let loadedCurrentId =
-                let value = getLine "current|"
-                if value = "" then 1 else int value
+        let encoded =
+            JS.EncodeURIComponent saveText
 
-            let loadedNextId =
-                let value = getLine "next|"
-                if value = "" then 2 else int value
+        let link =
+            JS.Document.CreateElement("a")
 
-            let loadedPlayers =
-                let value = getLine "players|"
+        link.SetAttribute("href", "data:text/plain;charset=utf-8," + encoded)
+        link.SetAttribute("download", "redice-save.redice")
+        link?click()
 
-                if value = "" then
-                    [ { Id = 1; Name = "Player 1" } ]
-                else
-                    value.Split([|';'|])
-                    |> Array.toList
-                    |> List.choose deserializePlayer
+    let importSaveFile (el: Dom.Element) =
+        let files =
+            el?files
 
-            let loadedHistory =
-                let value = getLine "history|"
+        if isNull files then
+            ()
+        else
+            let file =
+                files?item(0)
 
-                if value = "" then
-                    []
-                else
-                    value.Split([|'~'|])
-                    |> Array.toList
-                    |> List.choose deserializeHistoryEntry
+            if isNull file then
+                ()
+            else
+                let reader =
+                    JS.Eval("new FileReader()")
 
-            let loadedRolls =
-                loadedHistory
-                |> List.collect (fun history ->
-                    history.Values
-                    |> List.map (fun value ->
-                        {
-                            Dice = history.Roll.Dice
-                            Value = value
-                            Mode = history.Mode
-                        }
-                    )
-                )
+                reader?onload <- fun _ ->
+                    let importedText =
+                        string reader?result
 
-            players.Set loadedPlayers
-            currentPlayerId.Set loadedCurrentId
-            nextPlayerId.Set loadedNextId
+                    loadSaveText importedText
+                    JS.Window.LocalStorage.SetItem(storageKey, importedText)
 
-            rollHistory.Set loadedHistory
-            allRolls.Set loadedRolls
-
-            selectedDice.Set None
-            selectedCount.Set None
-
-            match loadedHistory |> List.rev with
-            | last :: _ ->
-                lastTotal.Set last.Total
-                lastRolls.Set (last.Values |> List.map string |> String.concat ", ")
-            | [] ->
-                lastTotal.Set 0
-                lastRolls.Set ""
-
-            showMobileStats.Set false
+                reader?readAsText(file)
 
     let newGame () =
         selectedMode.Set SingleMode
@@ -715,11 +774,21 @@ module Client =
         button [
             attr.``class`` (
                 "w-full mt-6 px-4 py-3 rounded-2xl border text-sm font-semibold transition text-left " +
+
                 match mode with
                 | SingleMode ->
-                    "border-purple-500/30 text-purple-300 hover:bg-purple-500/10"
+                    match theme with
+                    | DarkTheme ->
+                        "border-purple-500/30 text-purple-300 hover:bg-purple-500/10"
+                    | LightTheme ->
+                        "border-purple-500/60 text-purple-700 hover:bg-purple-500/10"
+
                 | MultiMode ->
-                    "border-orange-500/30 text-orange-300 hover:bg-orange-500/10"
+                    match theme with
+                    | DarkTheme ->
+                        "border-orange-500/30 text-orange-300 hover:bg-orange-500/10"
+                    | LightTheme ->
+                        "border-orange-500/60 text-orange-700 hover:bg-orange-500/10"
             )
             on.click (fun _ _ -> newGame ())
         ] [
@@ -758,11 +827,7 @@ module Client =
                         button [
                             attr.``class`` (
                                 "flex-1 px-4 py-3 rounded-xl font-semibold transition " +
-                                match theme with
-                                | DarkTheme ->
-                                    "text-gray-400 hover:text-white"
-                                | LightTheme ->
-                                    "text-slate-600 hover:text-slate-900"
+                                accentText theme mode
                             )
                             on.click (fun _ _ -> loadGame ())
                         ] [
@@ -770,7 +835,15 @@ module Client =
                         ]
                     ]
 
-                    sideMenuItem theme mode ImportExportPage currentPage
+                    button [
+                        attr.``class`` (
+                            "w-full px-4 py-3 rounded-2xl border text-sm font-semibold text-left transition " +
+                            modeBorder mode + " " + accentText theme mode + " hover:bg-white/5"
+                        )
+                        on.click (fun _ _ -> selectedPage.Set ImportExportPage)
+                    ] [
+                        text "Import / Export"
+                    ]
                 ]
 
                 div [ attr.``class`` "mt-auto space-y-3 pt-10" ] [
@@ -821,11 +894,7 @@ module Client =
                                 button [
                                     attr.``class`` (
                                         "flex-1 px-3 py-2 rounded-xl font-semibold transition text-sm " +
-                                        match theme with
-                                        | DarkTheme ->
-                                            "text-gray-400 hover:text-white"
-                                        | LightTheme ->
-                                            "text-slate-600 hover:text-slate-900"
+                                        accentText theme mode
                                     )
                                     on.click (fun _ _ -> loadGame ())
                                 ] [
@@ -833,7 +902,15 @@ module Client =
                                 ]
                             ]
 
-                            sideMenuItem theme mode ImportExportPage currentPage
+                            button [
+                                attr.``class`` (
+                                    "w-full px-4 py-3 rounded-2xl border text-sm font-semibold text-left transition " +
+                                    modeBorder mode + " " + accentText theme mode + " hover:bg-white/5"
+                                )
+                                on.click (fun _ _ -> selectedPage.Set ImportExportPage)
+                            ] [
+                                text "Import / Export"
+                            ]
 
                             div [ attr.``class`` "border-t border-white/10 pt-3 mt-3 space-y-3" ] [
                                 sideMenuItem theme mode HomePage currentPage
@@ -1302,7 +1379,155 @@ module Client =
             ]
         ]
 
-       
+    let aboutPageLayout theme mode =
+        div [ attr.``class`` "grid grid-cols-1 xl:grid-cols-2 gap-6 items-start" ] [
+
+            div [ attr.``class`` ("h-[774px] border " + panelBg theme + " " + modeBorder mode + " p-6 rounded-3xl shadow-2xl overflow-hidden") ] [
+                h2 [ attr.``class`` ("text-3xl font-bold mb-2 " + accentText theme mode) ] [
+                    text "About ReDice"
+                ]
+
+                p [ attr.``class`` ("text-sm mb-6 " + mutedText theme) ] [
+                    text "ReDice is a responsive RPG dice roller web application built as a WebSharper single page application."
+                ]
+
+                div [ attr.``class`` "space-y-4" ] [
+                    div [ attr.``class`` ("border rounded-2xl p-5 " + innerBoxBg theme) ] [
+                        h3 [ attr.``class`` ("text-xl font-bold mb-2 " + titleText theme) ] [
+                            text "Project goal"
+                        ]
+
+                        p [ attr.``class`` ("text-sm leading-relaxed " + mutedText theme) ] [
+                            text "The goal of the project is to support tabletop RPG sessions with quick dice rolling, local multiplayer support, roll history, statistics, and portable save files."
+                        ]
+                    ]
+
+                    div [ attr.``class`` ("border rounded-2xl p-5 " + innerBoxBg theme) ] [
+                        h3 [ attr.``class`` ("text-xl font-bold mb-2 " + titleText theme) ] [
+                            text "Main features"
+                        ]
+
+                        ul [ attr.``class`` ("text-sm leading-7 list-disc pl-5 " + mutedText theme) ] [
+                            li [] [ text "Single Player and Multiplayer modes" ]
+                            li [] [ text "Editable local player list" ]
+                            li [] [ text "Dice types from D4 to D100" ]
+                            li [] [ text "Roll distribution charts" ]
+                            li [] [ text "Full roll history with summary statistics" ]
+                            li [] [ text "Save / Load and .redice Import / Export" ]
+                            li [] [ text "Responsive layout with dark and light themes" ]
+                        ]
+                    ]
+                ]
+            ]
+
+            div [ attr.``class`` "space-y-6" ] [
+                div [ attr.``class`` ("h-[330px] border " + panelBg theme + " " + modeBorder mode + " p-6 rounded-3xl shadow-2xl overflow-hidden") ] [
+                    h2 [ attr.``class`` ("text-2xl font-bold mb-1 " + titleText theme) ] [
+                        text "Technology"
+                    ]
+
+                    p [ attr.``class`` ("text-sm mb-5 " + mutedText theme) ] [
+                        text "The application uses technologies from the DUE Functional F / WebSharper SPA course material."
+                    ]
+
+                    div [ attr.``class`` "grid grid-cols-1 sm:grid-cols-2 gap-4" ] [
+                        div [ attr.``class`` ("border rounded-2xl p-4 " + innerBoxBg theme) ] [
+                            p [ attr.``class`` ("text-xs uppercase tracking-wide " + mutedText theme) ] [
+                                text "Language"
+                            ]
+
+                            div [ attr.``class`` ("text-2xl font-black mt-2 " + accentText theme mode) ] [
+                                text "F#"
+                            ]
+                        ]
+
+                        div [ attr.``class`` ("border rounded-2xl p-4 " + innerBoxBg theme) ] [
+                            p [ attr.``class`` ("text-xs uppercase tracking-wide " + mutedText theme) ] [
+                                text "Framework"
+                            ]
+
+                            div [ attr.``class`` ("text-2xl font-black mt-2 " + accentText theme mode) ] [
+                                text "WebSharper"
+                            ]
+                        ]
+
+                        div [ attr.``class`` ("border rounded-2xl p-4 " + innerBoxBg theme) ] [
+                            p [ attr.``class`` ("text-xs uppercase tracking-wide " + mutedText theme) ] [
+                                text "UI"
+                            ]
+
+                            div [ attr.``class`` ("text-2xl font-black mt-2 " + accentText theme mode) ] [
+                                text "Tailwind"
+                            ]
+                        ]
+
+                        div [ attr.``class`` ("border rounded-2xl p-4 " + innerBoxBg theme) ] [
+                            p [ attr.``class`` ("text-xs uppercase tracking-wide " + mutedText theme) ] [
+                                text "Storage"
+                            ]
+
+                            div [ attr.``class`` ("text-2xl font-black mt-2 " + accentText theme mode) ] [
+                                text ".redice"
+                            ]
+                        ]
+                    ]
+                ]
+
+                div [ attr.``class`` ("h-[420px] border " + panelBg theme + " " + modeBorder mode + " p-6 rounded-3xl shadow-2xl overflow-hidden") ] [
+                    h2 [ attr.``class`` ("text-2xl font-bold mb-1 " + titleText theme) ] [
+                        text "Course connection"
+                    ]
+
+                    p [ attr.``class`` ("text-sm leading-relaxed mt-4 " + mutedText theme) ] [
+                        text "The application demonstrates a client-side SPA structure with state management, dynamic views, responsive UI design, user interaction, charts, and local browser-based save handling."
+                    ]
+
+                    div [ attr.``class`` ("mt-6 rounded-2xl border p-5 " + modeSoftBg mode + " " + modeStrongBorder mode) ] [
+                        p [ attr.``class`` ("text-sm font-semibold " + accentText theme mode) ] [
+                            text "ReDice is designed as a practical RPG dice roller, not just a demo page."
+                        ]
+                    ]
+                ]
+            ]
+        ]
+
+    let importExportPageLayout theme mode =
+        div [ attr.``class`` "grid grid-cols-1 xl:grid-cols-2 gap-6 items-start" ] [
+
+            div [ attr.``class`` ("h-[420px] border " + panelBg theme + " " + modeBorder mode + " p-6 rounded-3xl shadow-2xl overflow-hidden") ] [
+                h2 [ attr.``class`` ("text-2xl font-bold mb-1 " + titleText theme) ] [
+                    text "Export Save"
+                ]
+
+                p [ attr.``class`` ("text-sm mb-6 " + mutedText theme) ] [
+                    text "Download your current ReDice save file and move it to another computer."
+                ]
+
+                button [
+                    attr.``class`` ("w-full py-4 rounded-2xl text-white font-bold " + modeButtonColor mode)
+                    on.click (fun _ _ -> exportSaveFile ())
+                ] [
+                    text "EXPORT SAVE FILE"
+                ]
+            ]
+
+            div [ attr.``class`` ("h-[420px] border " + panelBg theme + " " + modeBorder mode + " p-6 rounded-3xl shadow-2xl overflow-hidden") ] [
+                h2 [ attr.``class`` ("text-2xl font-bold mb-1 " + titleText theme) ] [
+                    text "Import Save"
+                ]
+
+                p [ attr.``class`` ("text-sm mb-6 " + mutedText theme) ] [
+                    text "Choose a previously exported ReDice save file."
+                ]
+
+                input [
+                    attr.``type`` "file"
+                    attr.accept ".redice"
+                    attr.``class`` ("w-full rounded-2xl border p-4 " + inputBg theme)
+                    on.change (fun el _ -> importSaveFile el)
+                ] []
+            ]
+        ]
 
     let playerRow theme mode currentId player =
         let activeClass =
@@ -1316,13 +1541,28 @@ module Client =
                 | LightTheme -> "bg-slate-200/80 border-slate-300"
 
         div [ attr.``class`` ("flex items-center gap-2 border rounded-xl p-2 " + activeClass) ] [
-            div [ attr.``class`` ("w-3 h-3 rounded-full " + playerDotColor player.Id) ] []
+
+            div [ attr.``class`` ("w-3 h-3 rounded-full shrink-0 " + playerDotColor player.Id) ] []
 
             input [
                 attr.value player.Name
-                attr.``class`` ("w-full bg-transparent text-sm outline-none " + titleText theme)
+                attr.``class`` ("flex-1 min-w-0 bg-transparent text-sm outline-none " + titleText theme)
                 on.change (fun el _ -> updatePlayerName player.Id el?value)
             ] []
+
+            if player.Id = 1 then
+                div [
+                    attr.``class`` "w-8 h-8 shrink-0 rounded-lg border border-transparent"
+                ] []
+            else
+                button [
+                    attr.``class`` ("w-8 h-8 shrink-0 rounded-lg flex items-center justify-center text-white font-bold " + modeButtonColor mode)
+                    on.click (fun _ _ -> removePlayer player.Id)
+                ] [
+                    span [ attr.style "transform: translateY(-1px);" ] [
+                        text "−"
+                    ]
+                ]
         ]
 
     let currentPlayerPanel theme mode =
@@ -1369,7 +1609,7 @@ module Client =
                         currentPlayers
                         |> List.map (fun player -> playerRow theme mode currentId player)
 
-                    div [ attr.``class`` "space-y-2 h-[330px] overflow-y-auto pr-1" ] playerDocs
+                    div [ attr.``class`` "space-y-2 h-[330px] overflow-y-auto pr-1 redice-scroll-orange" ] playerDocs
                 ) currentPlayerId.View
             ) players.View
         ]
@@ -1827,10 +2067,10 @@ module Client =
                             historyPageLayout theme mode
 
                         | ImportExportPage ->
-                            pageLayout theme mode
+                            importExportPageLayout theme mode
 
                         | AboutPage ->
-                            pageLayout theme mode
+                            aboutPageLayout theme mode
                     ]
                 ]
             ]
