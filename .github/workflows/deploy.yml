@@ -41,6 +41,14 @@ jobs:
           mkdir -p public
           cp -r wwwroot/* public/
 
+          if [ -d "Scripts" ]; then
+            cp -r Scripts public/Scripts
+          fi
+
+          if [ -d "bin/Release/net10.0/wwwroot" ]; then
+            cp -r bin/Release/net10.0/wwwroot/* public/
+          fi
+
       - name: Setup Pages
         uses: actions/configure-pages@v5
 
