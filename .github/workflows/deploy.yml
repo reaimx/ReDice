@@ -40,16 +40,12 @@ jobs:
         run: |
           mkdir -p public
 
-          cp -r publish/wwwroot/* public/
-
-          if [ -d "wwwroot/icons" ]; then
-            mkdir -p public/icons
-            cp -r wwwroot/icons/* public/icons/
+          if [ -d "publish/wwwroot" ]; then
+            cp -r publish/wwwroot/* public/
           fi
 
-          if [ -d "wwwroot/Scripts" ]; then
-            mkdir -p public/Scripts
-            cp -r wwwroot/Scripts/* public/Scripts/
+          if [ -d "wwwroot" ]; then
+            cp -r wwwroot/* public/
           fi
 
           if [ -d "Scripts" ]; then
@@ -58,7 +54,7 @@ jobs:
           fi
 
           echo "=== PUBLIC FILES ==="
-          find public -maxdepth 3 -type f
+          find public -maxdepth 4 -type f
 
       - name: Setup Pages
         uses: actions/configure-pages@v5
